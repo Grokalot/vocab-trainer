@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { getOverviewStats } from '../lib/overviewStats';
 import { getRetentionEligibleCount } from '../lib/retention';
+import { getWordRecallEligibleCount } from '../lib/wordRecall';
 import { getSessionStats } from '../lib/sessionStats';
 import {
   getTrackedStats,
@@ -26,6 +27,8 @@ export function useStatistics(allWords: string[]): StudyStatistics & { refresh: 
   const maxTrackedWords = Math.min(trackedStats.count, 20);
   const retentionEligible = useMemo(() => getRetentionEligibleCount(), [trends, revision]);
   const maxRetentionWords = Math.min(retentionEligible, 20);
+  const wordRecallEligible = useMemo(() => getWordRecallEligibleCount(), [trends, revision]);
+  const maxWordRecallWords = Math.min(wordRecallEligible, 20);
   const untestedCount = useMemo(
     () => getUntestedWords(allWords).length,
     [allWords, trends, revision],
@@ -40,6 +43,7 @@ export function useStatistics(allWords: string[]): StudyStatistics & { refresh: 
     improvingWords,
     maxTrackedWords,
     maxRetentionWords,
+    maxWordRecallWords,
     untestedCount,
     maxNewWords,
     sessionStats,

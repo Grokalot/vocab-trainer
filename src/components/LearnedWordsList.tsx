@@ -18,7 +18,10 @@ export default function LearnedWordsList({ words }: LearnedWordsListProps) {
             <li key={item.word} className="trend-item">
               <span>{item.word}</span>
               <span className="trend-meta">
-                {item.averageScore}% · {item.attemptCount}×
+                def {item.averageScore}% · {item.attemptCount}×
+                {item.wordAttemptCount > 0 && (
+                  <> · word {item.wordAverageScore}% · {item.wordAttemptCount}×</>
+                )}
               </span>
             </li>
           ))}

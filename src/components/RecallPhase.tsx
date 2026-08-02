@@ -1,4 +1,5 @@
 import { useEffect, useState, type KeyboardEvent } from 'react';
+import { prepareWordRecallPrompt } from '../lib/wordRecallPrompt';
 import type { DefinitionEditView, SessionWord, WordEditView } from '../types';
 import DefinitionEditor from './DefinitionEditor';
 import ProgressSquares from './ProgressSquares';
@@ -8,6 +9,7 @@ interface RecallPhaseProps {
   words: SessionWord[];
   index: number;
   total: number;
+  variant: 'definition' | 'word';
   wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
   submitting: boolean;
@@ -19,6 +21,7 @@ export default function RecallPhase({
   words,
   index,
   total,
+  variant,
   wordEdit,
   definitionEdit,
   submitting,
@@ -34,6 +37,7 @@ export default function RecallPhase({
       index={index}
       total={total}
       word={word}
+      variant={variant}
       wordEdit={wordEdit}
       definitionEdit={definitionEdit}
       submitting={submitting}
@@ -48,6 +52,7 @@ function RecallPhaseInner({
   index,
   total,
   word,
+  variant,
   wordEdit,
   definitionEdit,
   submitting,
@@ -56,6 +61,10 @@ function RecallPhaseInner({
 }: RecallPhaseProps & { word: SessionWord }) {
   const [answerDraft, setAnswerDraft] = useState('');
   const tileLocked = wordEdit.isEditing || definitionEdit.isEditing || submitting;
+  const isWordRecall = variant === 'word';
+  const wordRecallPrompt = isWordRecall
+    ? prepareWordRecallPrompt(word.word, word.definition)
+    : null;
 
   useEffect(() => {
     setAnswerDraft('');
@@ -69,7 +78,7 @@ function RecallPhaseInner({
     }
   }
 
-  function handleAnswerKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+  function handleAnswerKeyDown(e: KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) {
     if (e.key !== 'Enter' || e.shiftKey) return;
     e.preventDefault();
     handleSubmit();
@@ -78,16 +87,22 @@ function RecallPhaseInner({
   return (
     <div className="phase-center">
       <p className="phase-label">
-        Recall · {index + 1} / {total}
+        {isWordRecall ? 'Word recall' : 'Recall'} · {index + 1} / {total}
       </p>
 
       <article className="center-tile">
-        <TileWordHeader
-          word={word.word}
-          wordEdit={wordEdit}
-          definitionEdit={definitionEdit}
-        />
-        {definitionEdit.isEditing ? (
+        {isWordRecall ? (
+          <p className="word-recall-prompt">
+            {wordRecallPrompt ?? word.definition}
+          </p>
+        ) : (
+          <TileWordHeader
+            word={word.word}
+            wordEdit={wordEdit}
+            definitionEdit={definitionEdit}
+          />
+        )}
+        {!isWordRecall && definitionEdit.isEditing ? (
           <DefinitionEditor
             draft={definitionEdit.draft}
             fetchingGpt={definitionEdit.fetchingGpt}
@@ -99,16 +114,28 @@ function RecallPhaseInner({
         ) : (
           !wordEdit.isEditing && (
             <label className="recall-input">
-              <span className="sr-only">Your definition</span>
-              <textarea
-                value={answerDraft}
-                onChange={(e) => setAnswerDraft(e.target.value)}
-                onKeyDown={handleAnswerKeyDown}
-                placeholder="Type the definition…"
-                rows={4}
-                autoFocus
-                disabled={submitting}
-              />
+              <span className="sr-only">{isWordRecall ? 'Your word' : 'Your definition'}</span>
+              {isWordRecall ? (
+                <input
+                  type="text"
+                  value={answerDraft}
+                  onChange={(e) => setAnswerDraft(e.target.value)}
+                  onKeyDown={handleAnswerKeyDown}
+                  placeholder="Type the word…"
+                  autoFocus
+                  disabled={submitting}
+                />
+              ) : (
+                <textarea
+                  value={answerDraft}
+                  onChange={(e) => setAnswerDraft(e.target.value)}
+                  onKeyDown={handleAnswerKeyDown}
+                  placeholder="Type the definition…"
+                  rows={4}
+                  autoFocus
+                  disabled={submitting}
+                />
+              )}
             </label>
           )
         )}

@@ -1,6 +1,12 @@
+import { useState } from 'react';
 import type { OverviewStats, SessionStartMode, WordStatistics } from '../types';
 import BrainProgress from './BrainProgress';
-import LearnedWordsList from './LearnedWordsList';
+import StatsPanel from './StatsPanel';
+
+type TrackedStartMode = Extract<
+  SessionStartMode,
+  'tracked-study' | 'tracked-test' | 'tracked-test-word'
+>;
 
 interface SetupViewProps {
   hasApiKey: boolean;
@@ -17,8 +23,9 @@ interface SetupViewProps {
   trackedWordCount: number;
   maxTrackedWords: number;
   maxRetentionWords: number;
+  maxWordRecallWords: number;
   onTrackedWordCountChange: (value: number) => void;
-  onStartTracked: (mode: Extract<SessionStartMode, 'tracked-study' | 'tracked-test'>) => void;
+  onStartTracked: (mode: TrackedStartMode) => void;
 }
 
 export default function SetupView({
@@ -36,10 +43,20 @@ export default function SetupView({
   trackedWordCount,
   maxTrackedWords,
   maxRetentionWords,
+  maxWordRecallWords,
   onTrackedWordCountChange,
   onStartTracked,
 }: SetupViewProps) {
   const canStartNew = untestedCount > 0 && hasApiKey;
+  const [testPickerOpen, setTestPickerOpen] = useState(false);
+  const canStartDefinitionTest = hasApiKey && maxRetentionWords > 0;
+  const canStartWordTest = hasApiKey && maxWordRecallWords > 0;
+  const canOpenTestPicker = canStartDefinitionTest || canStartWordTest;
+
+  function startTest(mode: Extract<SessionStartMode, 'tracked-test' | 'tracked-test-word'>) {
+    setTestPickerOpen(false);
+    onStartTracked(mode);
+  }
 
   return (
     <>
@@ -75,35 +92,10 @@ export default function SetupView({
         )}
       </div>
 
-      <div className="spacer-section stats-panel">
-        <dl className="stats-list">
-          <div className="stats-row">
-            <dt>Total sessions</dt>
-            <dd>{overview.totalSessions}</dd>
-          </div>
-          <div className="stats-row stats-sub">
-            <dt>New</dt>
-            <dd>{overview.sessionsNew}</dd>
-          </div>
-          <div className="stats-row stats-sub">
-            <dt>Tracked study</dt>
-            <dd>{overview.sessionsTrackedStudy}</dd>
-          </div>
-          <div className="stats-row stats-sub">
-            <dt>Tracked test</dt>
-            <dd>{overview.sessionsTrackedTest}</dd>
-          </div>
-          <div className="stats-row">
-            <dt>Words learned</dt>
-            <dd>{overview.wordsLearned}</dd>
-          </div>
-          <div className="stats-row">
-            <dt>Total average</dt>
-            <dd>{overview.totalAverage}%</dd>
-          </div>
-        </dl>
-        <LearnedWordsList words={learnedWords} />
-      </div>
+      <details className="stats-collapsible spacer-section">
+        <summary>Stats</summary>
+        <StatsPanel overview={overview} learnedWords={learnedWords} />
+      </details>
 
       {improvingWords.length > 0 && (
         <div className="spacer-section">
@@ -141,12 +133,30 @@ export default function SetupView({
                 Tracked study
               </button>
               <button
-                onClick={() => onStartTracked('tracked-test')}
-                disabled={!hasApiKey || maxRetentionWords === 0}
+                onClick={() => setTestPickerOpen((open) => !open)}
+                disabled={!canOpenTestPicker}
               >
                 Tracked test
               </button>
             </div>
+            {testPickerOpen && (
+              <div className="test-type-picker">
+                <button
+                  type="button"
+                  onClick={() => startTest('tracked-test')}
+                  disabled={!canStartDefinitionTest}
+                >
+                  Definition test
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startTest('tracked-test-word')}
+                  disabled={!canStartWordTest}
+                >
+                  Word test
+                </button>
+              </div>
+            )}
             <span className="hint">
               Test · long-term retention, separate from study scores
             </span>

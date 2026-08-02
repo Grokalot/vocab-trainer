@@ -2,7 +2,11 @@
 
 export type AppPhase = 'setup' | 'study' | 'test' | 'results';
 
-export type SessionStartMode = 'new' | 'tracked-study' | 'tracked-test';
+export type SessionStartMode =
+  | 'new'
+  | 'tracked-study'
+  | 'tracked-test'
+  | 'tracked-test-word';
 
 export type Trend = 'improving' | 'declining' | 'stable' | 'new';
 
@@ -71,6 +75,9 @@ export interface WordStatistics {
   averageScore: number;
   recentAverage: number;
   attemptCount: number;
+  /** Word-supply attempts (definition → word tests). */
+  wordAttemptCount: number;
+  wordAverageScore: number;
 }
 
 /** Aggregate counts across all tracked words. */
@@ -111,6 +118,7 @@ export interface SessionStats {
   new: number;
   trackedStudy: number;
   trackedTest: number;
+  trackedTestWord: number;
 }
 
 /** Overview statistics shown on the setup screen. */
@@ -119,9 +127,13 @@ export interface OverviewStats {
   sessionsNew: number;
   sessionsTrackedStudy: number;
   sessionsTrackedTest: number;
+  sessionsTrackedTestWord: number;
   /** Words with at least one recall attempt (main progress). */
   wordsLearned: number;
   totalAverage: number;
+  /** Total word-supply attempts across all words. */
+  wordRecallAttempts: number;
+  wordRecallAverage: number;
 }
 
 /** Full study statistics shown on the setup screen. */
@@ -131,6 +143,7 @@ export interface StudyStatistics {
   improvingWords: WordStatistics[];
   maxTrackedWords: number;
   maxRetentionWords: number;
+  maxWordRecallWords: number;
   untestedCount: number;
   maxNewWords: number;
   sessionStats: SessionStats;
@@ -197,6 +210,7 @@ export interface RecallPhaseView {
   words: SessionWord[];
   index: number;
   total: number;
+  variant: 'definition' | 'word';
   wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
   submitAnswer: (answer: string) => Promise<boolean>;
@@ -206,6 +220,7 @@ export interface RecallPhaseView {
 export interface ResultsPhaseView {
   average: number;
   words: SessionWord[];
+  variant: 'definition' | 'word';
   goHome: () => void;
 }
 

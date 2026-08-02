@@ -143,6 +143,27 @@ export async function loadWordEntries(words: string[]): Promise<Word[]> {
   return entries;
 }
 
+export async function scoreWordAttempt(
+  definition: string,
+  correctWord: string,
+  userAnswer: string,
+): Promise<ReviewResult> {
+  const content = await callOpenAI(
+    `You score vocabulary word-recall attempts. The user sees a definition and must supply the vocabulary word.
+Compare the user's answer to the correct word. Score 0-100 where 100 means the correct word (minor spelling variants or inflected forms of the same lemma may score highly).
+Respond with JSON: {"score": number, "feedback": "brief encouraging feedback"}`,
+    `Definition shown: ${definition}
+Correct word: ${correctWord}
+User's answer: ${userAnswer}`,
+  );
+
+  const parsed = JSON.parse(content) as ReviewResponse;
+  return {
+    score: Math.max(0, Math.min(100, Math.round(parsed.score))),
+    feedback: parsed.feedback,
+  };
+}
+
 export async function scoreAttempt(
   word: string,
   correctDefinition: string,

@@ -12,6 +12,7 @@ const defaultCounts = (): Record<SessionStartMode, number> => ({
   new: 0,
   'tracked-study': 0,
   'tracked-test': 0,
+  'tracked-test-word': 0,
 });
 
 function normalizeCounts(
@@ -23,6 +24,7 @@ function normalizeCounts(
   counts.new = raw.new ?? 0;
   counts['tracked-study'] = raw['tracked-study'] ?? raw.tracked ?? 0;
   counts['tracked-test'] = raw['tracked-test'] ?? 0;
+  counts['tracked-test-word'] = raw['tracked-test-word'] ?? 0;
   return counts;
 }
 
@@ -53,10 +55,14 @@ export function getSessionStats(): SessionStats {
   const { completedCounts } = loadSessionHistory();
   return {
     totalSessions:
-      completedCounts.new + completedCounts['tracked-study'] + completedCounts['tracked-test'],
+      completedCounts.new +
+      completedCounts['tracked-study'] +
+      completedCounts['tracked-test'] +
+      completedCounts['tracked-test-word'],
     new: completedCounts.new,
     trackedStudy: completedCounts['tracked-study'],
     trackedTest: completedCounts['tracked-test'],
+    trackedTestWord: completedCounts['tracked-test-word'],
   };
 }
 

@@ -1,6 +1,7 @@
-import { loadRetentionProgress } from './retention';
 import { getSessionStats } from './sessionStats';
 import { getTrackedStats, loadProgress } from './storage';
+import { loadRetentionProgress } from './retention';
+import { getWordRecallStats, loadWordRecallProgress } from './wordRecall';
 import type { OverviewStats } from '../types';
 
 function getCombinedAverage(): number {
@@ -21,19 +22,30 @@ function getCombinedAverage(): number {
     }
   }
 
+  for (const entry of Object.values(loadWordRecallProgress())) {
+    for (const attempt of entry.attempts) {
+      totalScore += attempt.score;
+      totalAttempts++;
+    }
+  }
+
   return totalAttempts === 0 ? 0 : Math.round(totalScore / totalAttempts);
 }
 
 export function getOverviewStats(): OverviewStats {
   const sessions = getSessionStats();
   const { count: wordsLearned } = getTrackedStats();
+  const wordRecall = getWordRecallStats();
 
   return {
     totalSessions: sessions.totalSessions,
     sessionsNew: sessions.new,
     sessionsTrackedStudy: sessions.trackedStudy,
     sessionsTrackedTest: sessions.trackedTest,
+    sessionsTrackedTestWord: sessions.trackedTestWord,
     wordsLearned,
     totalAverage: getCombinedAverage(),
+    wordRecallAttempts: wordRecall.attemptCount,
+    wordRecallAverage: wordRecall.overallAverage,
   };
 }

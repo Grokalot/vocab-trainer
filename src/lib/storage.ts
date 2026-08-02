@@ -1,3 +1,4 @@
+import { loadWordRecallProgress } from './wordRecall';
 import type {
   AppSettings,
   Attempt,
@@ -71,6 +72,7 @@ export function recordAttempt(
 
 export function getWordTrends(): WordStatistics[] {
   const progress = loadProgress();
+  const wordRecall = loadWordRecallProgress();
 
   return Object.values(progress)
     .filter((entry) => entry.attempts.length > 0)
@@ -79,6 +81,16 @@ export function getWordTrends(): WordStatistics[] {
       const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
       const recent = scores.slice(-3);
       const recentAverage = recent.reduce((a, b) => a + b, 0) / recent.length;
+
+      const wordAttempts = wordRecall[wordKey(entry.word)]?.attempts ?? [];
+      const wordAttemptCount = wordAttempts.length;
+      const wordAverageScore =
+        wordAttemptCount > 0
+          ? Math.round(
+              wordAttempts.reduce((sum, attempt) => sum + attempt.score, 0) /
+                wordAttemptCount,
+            )
+          : 0;
 
       let trend: Trend = 'stable';
       if (entry.attempts.length === 1) {
@@ -95,6 +107,8 @@ export function getWordTrends(): WordStatistics[] {
         averageScore: Math.round(averageScore),
         recentAverage: Math.round(recentAverage),
         attemptCount: entry.attempts.length,
+        wordAttemptCount,
+        wordAverageScore,
       };
     })
     .sort((a, b) => {

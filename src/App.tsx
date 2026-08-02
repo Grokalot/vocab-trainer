@@ -22,6 +22,7 @@ export default function App() {
     trackedWordCount: wordLists.trackedWordCount,
     loadSessionEntries: ai.loadSessionEntries,
     scoreAnswer: ai.scoreAnswer,
+    scoreWordAnswer: ai.scoreWordAnswer,
     fetchGptDefinition: ai.fetchDefinitionFromGpt,
     renameWordInList: wordLists.renameWordInList,
     onWordRenamed: statistics.refresh,
@@ -69,11 +70,16 @@ export default function App() {
           trackedWordCount={wordLists.trackedWordCount}
           maxTrackedWords={statistics.maxTrackedWords}
           maxRetentionWords={statistics.maxRetentionWords}
+          maxWordRecallWords={statistics.maxWordRecallWords}
           onTrackedWordCountChange={(value) =>
             wordLists.setTrackedWordCount(
               wordLists.clampTrackedWordCount(
                 value,
-                Math.max(statistics.maxTrackedWords, statistics.maxRetentionWords),
+                Math.max(
+                  statistics.maxTrackedWords,
+                  statistics.maxRetentionWords,
+                  statistics.maxWordRecallWords,
+                ),
               ),
             )
           }
@@ -103,6 +109,7 @@ export default function App() {
           words={session.recall.words}
           index={session.recall.index}
           total={session.recall.total}
+          variant={session.recall.variant}
           definitionEdit={session.recall.definitionEdit}
           wordEdit={session.recall.wordEdit}
           submitting={session.loading.active && !session.loading.blocksUI}
@@ -115,6 +122,7 @@ export default function App() {
         <ResultsPhase
           average={session.results.average}
           words={session.results.words}
+          variant={session.results.variant}
           onHome={session.results.goHome}
         />
       )}

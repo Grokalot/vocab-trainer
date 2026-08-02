@@ -18,6 +18,7 @@ import {
   saveDefinition,
 } from '../lib/storage';
 import { pickRetentionTestWords, recordRetentionAttempt } from '../lib/retention';
+import { pickWordRecallTestWords, recordWordRecallAttempt } from '../lib/wordRecall';
 
 interface UseStudySessionOptions {
   allWords: string[];
@@ -25,6 +26,11 @@ interface UseStudySessionOptions {
   trackedWordCount: number;
   loadSessionEntries: (words: string[]) => Promise<Word[]>;
   scoreAnswer: (
+    word: string,
+    definition: string,
+    answer: string,
+  ) => Promise<ReviewResult>;
+  scoreWordAnswer: (
     word: string,
     definition: string,
     answer: string,
@@ -164,12 +170,17 @@ function useDefinitionEdit(
   return { isEditing, draft, fetchingGpt, start, setDraft, save, cancel, fetchFromGpt };
 }
 
+function isTrackedTestStartMode(mode: SessionStartMode): boolean {
+  return mode === 'tracked-test' || mode === 'tracked-test-word';
+}
+
 export function useStudySession({
   allWords,
   newWordCount,
   trackedWordCount,
   loadSessionEntries,
   scoreAnswer,
+  scoreWordAnswer,
   onSessionFinished,
   onSessionCompleted,
   fetchGptDefinition,
@@ -269,15 +280,19 @@ export function useStudySession({
             ? pickNewWords(allWords, count)
             : startMode === 'tracked-test'
               ? pickRetentionTestWords(count)
-              : pickTrackedWords(count);
+              : startMode === 'tracked-test-word'
+                ? pickWordRecallTestWords(count)
+                : pickTrackedWords(count);
 
         if (selected.length === 0) {
           setError(
             startMode === 'new'
               ? 'No untested words left. Use tracked mode to review words you have studied.'
-              : startMode === 'tracked-test'
-                ? 'No studied words yet. Complete a new or tracked study session first.'
-                : 'No tracked words yet. Complete a new session first.',
+              : startMode === 'tracked-test-word'
+                ? 'No words with usable definitions for word test. Edit circular definitions (e.g. "variant of …") in your word list.'
+                : isTrackedTestStartMode(startMode)
+                  ? 'No studied words yet. Complete a new or tracked study session first.'
+                  : 'No tracked words yet. Complete a new session first.',
           );
           return;
         }
@@ -287,7 +302,7 @@ export function useStudySession({
         setSessionWords(entries);
         setStudyIndex(0);
         setTestIndex(0);
-        setPhase(startMode === 'tracked-test' ? 'test' : 'study');
+        setPhase(isTrackedTestStartMode(startMode) ? 'test' : 'study');
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to start session.');
       } finally {
@@ -331,13 +346,20 @@ export function useStudySession({
       setError('');
       setLoading(true);
       setLoadingBlocksUI(false);
-      setLoadingMessage(`Scoring "${current.word}"…`);
+      setLoadingMessage(
+        mode === 'tracked-test-word' ? 'Scoring word answer…' : `Scoring "${current.word}"…`,
+      );
 
       try {
-        const review = await scoreAnswer(current.word, current.definition, trimmed);
+        const review =
+          mode === 'tracked-test-word'
+            ? await scoreWordAnswer(current.word, current.definition, trimmed)
+            : await scoreAnswer(current.word, current.definition, trimmed);
 
         if (mode === 'tracked-test') {
           recordRetentionAttempt(current.word, trimmed, review.score);
+        } else if (mode === 'tracked-test-word') {
+          recordWordRecallAttempt(current.word, trimmed, review.score);
         } else {
           recordAttempt(current.word, current.definition, trimmed, review.score);
         }
@@ -377,8 +399,10 @@ export function useStudySession({
         setLoadingMessage('');
       }
     },
-    [sessionWords, testIndex, mode, scoreAnswer, onSessionCompleted, onSessionFinished],
+    [sessionWords, testIndex, mode, scoreAnswer, scoreWordAnswer, onSessionCompleted, onSessionFinished],
   );
+
+  const recallVariant = mode === 'tracked-test-word' ? 'word' : 'definition';
 
   const sessionAverage = useMemo(() => {
     if (sessionWords.length === 0) return 0;
@@ -424,12 +448,13 @@ export function useStudySession({
       words: sessionWords,
       index: testIndex,
       total: sessionWords.length,
+      variant: recallVariant,
       definitionEdit: testDefinitionEdit,
       wordEdit: testWordEdit,
       submitAnswer,
       goHome,
     };
-  }, [phase, sessionWords, testIndex, testDefinitionEdit, testWordEdit, submitAnswer, goHome]);
+  }, [phase, sessionWords, testIndex, recallVariant, testDefinitionEdit, testWordEdit, submitAnswer, goHome]);
 
   const results = useMemo((): ResultsPhaseView | null => {
     if (phase !== 'results') return null;
@@ -437,9 +462,10 @@ export function useStudySession({
     return {
       average: sessionAverage,
       words: sessionWords,
+      variant: recallVariant,
       goHome,
     };
-  }, [phase, sessionAverage, sessionWords, goHome]);
+  }, [phase, sessionAverage, sessionWords, recallVariant, goHome]);
 
   const loadingState: SessionLoadingState = {
     active: loading,
