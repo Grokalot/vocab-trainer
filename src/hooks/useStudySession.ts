@@ -19,6 +19,7 @@ import {
 } from '../lib/storage';
 import { pickRetentionTestWords, recordRetentionAttempt } from '../lib/retention';
 import { pickWordRecallTestWords, recordWordRecallAttempt } from '../lib/wordRecall';
+import { applyLetterRevealCap, letterRevealMaxScore, parseWordLetterLayout } from '../lib/letterReveal';
 
 interface UseStudySessionOptions {
   allWords: string[];
@@ -336,7 +337,10 @@ export function useStudySession({
   ]);
 
   const submitAnswer = useCallback(
-    async (answer: string): Promise<boolean> => {
+    async (
+      answer: string,
+      options?: { lettersRevealed?: number },
+    ): Promise<boolean> => {
       const trimmed = answer.trim();
       if (!trimmed) return false;
 
@@ -351,10 +355,29 @@ export function useStudySession({
       );
 
       try {
-        const review =
-          mode === 'tracked-test-word'
-            ? await scoreWordAnswer(current.word, current.definition, trimmed)
-            : await scoreAnswer(current.word, current.definition, trimmed);
+        const isWordTest = mode === 'tracked-test-word';
+        const aiReview = isWordTest
+          ? await scoreWordAnswer(current.word, current.definition, trimmed)
+          : await scoreAnswer(current.word, current.definition, trimmed);
+
+        let review = aiReview;
+        if (isWordTest) {
+          const { letterCount } = parseWordLetterLayout(current.word);
+          const lettersRevealed = options?.lettersRevealed ?? 0;
+          const scoreCap = letterRevealMaxScore(lettersRevealed, letterCount);
+          const adjustedScore = applyLetterRevealCap(
+            aiReview.score,
+            lettersRevealed,
+            letterCount,
+          );
+          review = {
+            ...aiReview,
+            score: adjustedScore,
+            aiScore: aiReview.score,
+            scoreCap,
+            lettersRevealed,
+          };
+        }
 
         if (mode === 'tracked-test') {
           recordRetentionAttempt(current.word, trimmed, review.score);

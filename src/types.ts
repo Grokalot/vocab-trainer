@@ -34,6 +34,11 @@ export interface Attempt {
 export interface ReviewResult {
   score: number;
   feedback: string;
+  /** Raw AI score before letter-hint cap (DW mode). */
+  aiScore?: number;
+  /** Max score allowed after letter reveals (DW mode). */
+  scoreCap?: number;
+  lettersRevealed?: number;
 }
 
 /** Persisted progress and definition for one word. */
@@ -131,7 +136,10 @@ export interface OverviewStats {
   /** Words with at least one recall attempt (main progress). */
   wordsLearned: number;
   totalAverage: number;
-  /** Total word-supply attempts across all words. */
+  /** Definition-supply attempts (definition test). */
+  definitionAttempts: number;
+  definitionAverage: number;
+  /** Word-supply attempts (word test). */
   wordRecallAttempts: number;
   wordRecallAverage: number;
 }
@@ -213,7 +221,10 @@ export interface RecallPhaseView {
   variant: 'definition' | 'word';
   wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
-  submitAnswer: (answer: string) => Promise<boolean>;
+  submitAnswer: (
+    answer: string,
+    options?: { lettersRevealed?: number },
+  ) => Promise<boolean>;
   goHome: () => void;
 }
 

@@ -1,7 +1,9 @@
-import { useEffect, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
 import { prepareWordRecallPrompt } from '../lib/wordRecallPrompt';
+import { parseWordLetterLayout } from '../lib/letterReveal';
 import type { DefinitionEditView, SessionWord, WordEditView } from '../types';
 import DefinitionEditor from './DefinitionEditor';
+import LetterRevealRow from './LetterRevealRow';
 import ProgressSquares from './ProgressSquares';
 import TileWordHeader from './TileWordHeader';
 
@@ -13,7 +15,10 @@ interface RecallPhaseProps {
   wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
   submitting: boolean;
-  onSubmit: (answer: string) => Promise<boolean>;
+  onSubmit: (
+    answer: string,
+    options?: { lettersRevealed?: number },
+  ) => Promise<boolean>;
   onHome: () => void;
 }
 
@@ -60,21 +65,41 @@ function RecallPhaseInner({
   onHome,
 }: RecallPhaseProps & { word: SessionWord }) {
   const [answerDraft, setAnswerDraft] = useState('');
+  const [revealedLetterIndices, setRevealedLetterIndices] = useState<Set<number>>(
+    () => new Set(),
+  );
   const tileLocked = wordEdit.isEditing || definitionEdit.isEditing || submitting;
   const isWordRecall = variant === 'word';
   const wordRecallPrompt = isWordRecall
     ? prepareWordRecallPrompt(word.word, word.definition)
     : null;
+  const { letterCount } = useMemo(
+    () => parseWordLetterLayout(word.word),
+    [word.word],
+  );
 
   useEffect(() => {
     setAnswerDraft('');
+    setRevealedLetterIndices(new Set());
   }, [word.word]);
+
+  function revealLetter(letterIndex: number) {
+    setRevealedLetterIndices((current) => {
+      if (current.has(letterIndex)) return current;
+      const next = new Set(current);
+      next.add(letterIndex);
+      return next;
+    });
+  }
 
   async function handleSubmit() {
     if (!answerDraft.trim() || tileLocked) return;
-    const success = await onSubmit(answerDraft);
+    const success = await onSubmit(answerDraft, {
+      lettersRevealed: isWordRecall ? revealedLetterIndices.size : undefined,
+    });
     if (success) {
       setAnswerDraft('');
+      setRevealedLetterIndices(new Set());
     }
   }
 
@@ -91,6 +116,14 @@ function RecallPhaseInner({
       </p>
 
       <article className="center-tile">
+        {isWordRecall && letterCount > 0 && (
+          <LetterRevealRow
+            word={word.word}
+            revealedLetterIndices={revealedLetterIndices}
+            onRevealLetter={revealLetter}
+            disabled={submitting}
+          />
+        )}
         {isWordRecall ? (
           <p className="word-recall-prompt">
             {wordRecallPrompt ?? word.definition}

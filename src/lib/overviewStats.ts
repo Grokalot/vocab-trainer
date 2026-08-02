@@ -1,3 +1,4 @@
+import { getRetentionStats } from './retention';
 import { getSessionStats } from './sessionStats';
 import { getTrackedStats, loadProgress } from './storage';
 import { loadRetentionProgress } from './retention';
@@ -35,6 +36,7 @@ function getCombinedAverage(): number {
 export function getOverviewStats(): OverviewStats {
   const sessions = getSessionStats();
   const { count: wordsLearned } = getTrackedStats();
+  const definitionTest = getRetentionStats();
   const wordRecall = getWordRecallStats();
 
   return {
@@ -45,6 +47,8 @@ export function getOverviewStats(): OverviewStats {
     sessionsTrackedTestWord: sessions.trackedTestWord,
     wordsLearned,
     totalAverage: getCombinedAverage(),
+    definitionAttempts: definitionTest.attemptCount,
+    definitionAverage: definitionTest.overallAverage,
     wordRecallAttempts: wordRecall.attemptCount,
     wordRecallAverage: wordRecall.overallAverage,
   };

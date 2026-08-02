@@ -38,12 +38,16 @@ export function recordRetentionAttempt(
   saveRetentionProgress(progress);
 }
 
-export function getRetentionStats(): { count: number; overallAverage: number } {
+export function getRetentionStats(): {
+  wordCount: number;
+  attemptCount: number;
+  overallAverage: number;
+} {
   const progress = loadRetentionProgress();
   const entries = Object.values(progress).filter((entry) => entry.attempts.length > 0);
 
   if (entries.length === 0) {
-    return { count: 0, overallAverage: 0 };
+    return { wordCount: 0, attemptCount: 0, overallAverage: 0 };
   }
 
   let totalScore = 0;
@@ -56,7 +60,8 @@ export function getRetentionStats(): { count: number; overallAverage: number } {
   }
 
   return {
-    count: entries.length,
+    wordCount: entries.length,
+    attemptCount: totalAttempts,
     overallAverage: Math.round(totalScore / totalAttempts),
   };
 }

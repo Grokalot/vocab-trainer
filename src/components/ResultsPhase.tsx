@@ -35,6 +35,12 @@ export default function ResultsPhase({ average, words, variant, onHome }: Result
                   <span className="score-mark">{entry.review.score}%</span>
                 )}
               </div>
+              {entry.review?.lettersRevealed != null && entry.review.lettersRevealed > 0 && (
+                <p className="result-hint">
+                  {entry.review.lettersRevealed} letter
+                  {entry.review.lettersRevealed === 1 ? '' : 's'} revealed
+                </p>
+              )}
               <p>
                 <strong>You</strong> — {entry.userAnswer}
               </p>
