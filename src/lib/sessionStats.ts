@@ -1,6 +1,5 @@
 import type {
   CompletedSessionRecord,
-  SessionCategory,
   SessionCompletionSummary,
   SessionHistory,
   SessionStartMode,
@@ -9,30 +8,40 @@ import type {
 
 const SESSION_HISTORY_KEY = 'vocab-trainer-session-history';
 
-const defaultHistory: SessionHistory = {
-  completedCounts: { new: 0, tracked: 0 },
-  sessions: [],
-};
+const defaultCounts = (): Record<SessionStartMode, number> => ({
+  new: 0,
+  'tracked-study': 0,
+  'tracked-test': 0,
+});
 
-export function sessionCategory(mode: SessionStartMode): SessionCategory {
-  return mode === 'new' ? 'new' : 'tracked';
+function normalizeCounts(
+  raw: Partial<Record<string, number>> | undefined,
+): Record<SessionStartMode, number> {
+  const counts = defaultCounts();
+  if (!raw) return counts;
+
+  counts.new = raw.new ?? 0;
+  counts['tracked-study'] = raw['tracked-study'] ?? raw.tracked ?? 0;
+  counts['tracked-test'] = raw['tracked-test'] ?? 0;
+  return counts;
 }
 
 export function loadSessionHistory(): SessionHistory {
   try {
     const raw = localStorage.getItem(SESSION_HISTORY_KEY);
-    if (!raw) return { ...defaultHistory, completedCounts: { ...defaultHistory.completedCounts } };
+    if (!raw) {
+      return { completedCounts: defaultCounts(), sessions: [] };
+    }
 
     const parsed = JSON.parse(raw) as Partial<SessionHistory>;
+    const sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+
     return {
-      completedCounts: {
-        new: parsed.completedCounts?.new ?? 0,
-        tracked: parsed.completedCounts?.tracked ?? 0,
-      },
-      sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+      completedCounts: normalizeCounts(parsed.completedCounts as Partial<Record<string, number>>),
+      sessions,
     };
   } catch {
-    return { ...defaultHistory, completedCounts: { ...defaultHistory.completedCounts } };
+    return { completedCounts: defaultCounts(), sessions: [] };
   }
 }
 
@@ -43,8 +52,11 @@ export function saveSessionHistory(history: SessionHistory): void {
 export function getSessionStats(): SessionStats {
   const { completedCounts } = loadSessionHistory();
   return {
-    completedNewSessions: completedCounts.new,
-    completedTrackedSessions: completedCounts.tracked,
+    totalSessions:
+      completedCounts.new + completedCounts['tracked-study'] + completedCounts['tracked-test'],
+    new: completedCounts.new,
+    trackedStudy: completedCounts['tracked-study'],
+    trackedTest: completedCounts['tracked-test'],
   };
 }
 
@@ -53,12 +65,10 @@ export function recordSessionCompletion(
   summary: SessionCompletionSummary,
 ): SessionHistory {
   const history = loadSessionHistory();
-  const category = sessionCategory(summary.mode);
 
   const record: CompletedSessionRecord = {
     completedAt: Date.now(),
     mode: summary.mode,
-    category,
     wordCount: summary.wordCount,
     averageScore: summary.averageScore,
     results: summary.words.map((word) => ({
@@ -68,7 +78,7 @@ export function recordSessionCompletion(
   };
 
   history.sessions.push(record);
-  history.completedCounts[category] += 1;
+  history.completedCounts[summary.mode] += 1;
   saveSessionHistory(history);
 
   return history;

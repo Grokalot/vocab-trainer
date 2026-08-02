@@ -17,6 +17,7 @@ import {
   recordAttempt,
   saveDefinition,
 } from '../lib/storage';
+import { pickRetentionTestWords, recordRetentionAttempt } from '../lib/retention';
 
 interface UseStudySessionOptions {
   allWords: string[];
@@ -264,13 +265,17 @@ export function useStudySession({
         const selected =
           startMode === 'new'
             ? pickNewWords(allWords, count)
-            : pickTrackedWords(count);
+            : startMode === 'tracked-test'
+              ? pickRetentionTestWords(count)
+              : pickTrackedWords(count);
 
         if (selected.length === 0) {
           setError(
             startMode === 'new'
               ? 'No untested words left. Use tracked mode to review words you have studied.'
-              : 'No tracked words yet. Complete a new session first.',
+              : startMode === 'tracked-test'
+                ? 'No studied words yet. Complete a new or tracked study session first.'
+                : 'No tracked words yet. Complete a new session first.',
           );
           return;
         }
@@ -326,7 +331,12 @@ export function useStudySession({
 
       try {
         const review = await scoreAnswer(current.word, current.definition, trimmed);
-        recordAttempt(current.word, current.definition, trimmed, review.score);
+
+        if (mode === 'tracked-test') {
+          recordRetentionAttempt(current.word, trimmed, review.score);
+        } else {
+          recordAttempt(current.word, current.definition, trimmed, review.score);
+        }
 
         const updatedWords = sessionWords.map((item, index) =>
           index === testIndex

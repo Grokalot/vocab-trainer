@@ -40,6 +40,15 @@ export interface WordProgress {
   customDefinition?: boolean;
 }
 
+/** Long-term retention attempts for tracked test (separate from short-term recall). */
+export interface RetentionProgress {
+  word: string;
+  attempts: Attempt[];
+}
+
+/** Map of normalized word key → retention progress entry. */
+export type RetentionStore = Record<string, RetentionProgress>;
+
 /** A word within an active or completed session, including recall state. */
 export interface SessionWord extends Word {
   userAnswer?: string;
@@ -70,8 +79,8 @@ export interface TrackedStats {
   overallAverage: number;
 }
 
-/** Broad session type for completion stats (`tracked-study` and `tracked-test` → `tracked`). */
-export type SessionCategory = 'new' | 'tracked';
+/** Broad session type for completion stats — one counter per mode. */
+export type SessionCategory = SessionStartMode;
 
 /** Summary passed when a recall phase is fully completed. */
 export interface SessionCompletionSummary {
@@ -85,7 +94,6 @@ export interface SessionCompletionSummary {
 export interface CompletedSessionRecord {
   completedAt: number;
   mode: SessionStartMode;
-  category: SessionCategory;
   wordCount: number;
   averageScore: number;
   results: Array<{ word: string; score: number }>;
@@ -93,14 +101,27 @@ export interface CompletedSessionRecord {
 
 /** Persisted session history for current and future statistics. */
 export interface SessionHistory {
-  completedCounts: Record<SessionCategory, number>;
+  completedCounts: Record<SessionStartMode, number>;
   sessions: CompletedSessionRecord[];
 }
 
-/** High-level session completion counters (derived from SessionHistory). */
+/** Session completion counters by mode. */
 export interface SessionStats {
-  completedNewSessions: number;
-  completedTrackedSessions: number;
+  totalSessions: number;
+  new: number;
+  trackedStudy: number;
+  trackedTest: number;
+}
+
+/** Overview statistics shown on the setup screen. */
+export interface OverviewStats {
+  totalSessions: number;
+  sessionsNew: number;
+  sessionsTrackedStudy: number;
+  sessionsTrackedTest: number;
+  /** Words with at least one recall attempt (main progress). */
+  wordsLearned: number;
+  totalAverage: number;
 }
 
 /** Full study statistics shown on the setup screen. */
@@ -108,12 +129,12 @@ export interface StudyStatistics {
   trends: WordStatistics[];
   trackedStats: TrackedStats;
   improvingWords: WordStatistics[];
-  displayedTrends: WordStatistics[];
-  trackedOverflow: number;
   maxTrackedWords: number;
+  maxRetentionWords: number;
   untestedCount: number;
   maxNewWords: number;
   sessionStats: SessionStats;
+  overview: OverviewStats;
 }
 
 // ── Settings & storage ──────────────────────────────────────────────────────

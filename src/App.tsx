@@ -63,14 +63,18 @@ export default function App() {
           }
           onStartNew={() => session.startSession('new')}
           improvingWords={statistics.improvingWords}
-          trackedStats={statistics.trackedStats}
-          displayedTrends={statistics.displayedTrends}
-          trackedOverflow={statistics.trackedOverflow}
+          learnedWords={statistics.trends}
+          overview={statistics.overview}
+          hasStudiedWords={statistics.trackedStats.count > 0}
           trackedWordCount={wordLists.trackedWordCount}
           maxTrackedWords={statistics.maxTrackedWords}
+          maxRetentionWords={statistics.maxRetentionWords}
           onTrackedWordCountChange={(value) =>
             wordLists.setTrackedWordCount(
-              wordLists.clampTrackedWordCount(value, statistics.maxTrackedWords),
+              wordLists.clampTrackedWordCount(
+                value,
+                Math.max(statistics.maxTrackedWords, statistics.maxRetentionWords),
+              ),
             )
           }
           onStartTracked={session.startSession}
@@ -114,41 +118,43 @@ export default function App() {
         />
       )}
 
-      <details className="settings-panel">
-        <summary>Settings</summary>
-        <div className="panel setup-form">
-          <label>
-            OpenAI API key
-            <input
-              type="password"
-              placeholder="sk-…"
-              value={settings.apiKey}
-              onChange={(e) => settings.setApiKey(e.target.value)}
-              onBlur={settings.persistApiKey}
-            />
-            <span className="hint">
-              Used for definitions and scoring. Stored locally only.
-            </span>
-          </label>
-        </div>
-      </details>
+      <div className="app-footer">
+        <details className="settings-panel">
+          <summary>Settings</summary>
+          <div className="panel setup-form">
+            <label>
+              OpenAI API key
+              <input
+                type="password"
+                placeholder="sk-…"
+                value={settings.apiKey}
+                onChange={(e) => settings.setApiKey(e.target.value)}
+                onBlur={settings.persistApiKey}
+              />
+              <span className="hint">
+                Used for definitions and scoring. Stored locally only.
+              </span>
+            </label>
+          </div>
+        </details>
 
-      <details
-        className="settings-panel"
-        onToggle={(e) => wordLists.setIsManagerOpen(e.currentTarget.open)}
-      >
-        <summary>Word list · {wordLists.words.length} words</summary>
-        {wordLists.isManagerOpen && (
-          <WordListManager
-            words={wordLists.words}
-            onAddWord={wordLists.addWordToList}
-            onRenameWord={wordLists.renameWordInList}
-            onRefreshDefinitions={ai.refreshDefinitions}
-            onFetchGptDefinition={ai.fetchDefinitionFromGpt}
-            onStatisticsChange={statistics.refresh}
-          />
-        )}
-      </details>
+        <details
+          className="settings-panel settings-panel-end"
+          onToggle={(e) => wordLists.setIsManagerOpen(e.currentTarget.open)}
+        >
+          <summary>Word list · {wordLists.words.length} words</summary>
+          {wordLists.isManagerOpen && (
+            <WordListManager
+              words={wordLists.words}
+              onAddWord={wordLists.addWordToList}
+              onRenameWord={wordLists.renameWordInList}
+              onRefreshDefinitions={ai.refreshDefinitions}
+              onFetchGptDefinition={ai.fetchDefinitionFromGpt}
+              onStatisticsChange={statistics.refresh}
+            />
+          )}
+        </details>
+      </div>
     </div>
   );
 }

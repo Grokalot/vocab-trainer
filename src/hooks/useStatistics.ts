@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
+import { getOverviewStats } from '../lib/overviewStats';
+import { getRetentionEligibleCount } from '../lib/retention';
 import { getSessionStats } from '../lib/sessionStats';
 import {
   getTrackedStats,
   getUntestedWords,
   getWordTrends,
-  TRACKED_DISPLAY_LIMIT,
 } from '../lib/storage';
 import type { StudyStatistics, WordStatistics } from '../types';
 
@@ -17,34 +18,32 @@ export function useStatistics(allWords: string[]): StudyStatistics & { refresh: 
     setRevision((current) => current + 1);
   }, []);
 
-  const trackedStats = useMemo(() => getTrackedStats(), [trends]);
+  const trackedStats = useMemo(() => getTrackedStats(), [trends, revision]);
   const improvingWords = useMemo(
     () => trends.filter((t) => t.trend === 'improving'),
     [trends],
   );
-  const displayedTrends = useMemo(
-    () => trends.slice(0, TRACKED_DISPLAY_LIMIT),
-    [trends],
-  );
-  const trackedOverflow = Math.max(0, trends.length - displayedTrends.length);
   const maxTrackedWords = Math.min(trackedStats.count, 20);
+  const retentionEligible = useMemo(() => getRetentionEligibleCount(), [trends, revision]);
+  const maxRetentionWords = Math.min(retentionEligible, 20);
   const untestedCount = useMemo(
     () => getUntestedWords(allWords).length,
-    [allWords, trends],
+    [allWords, trends, revision],
   );
   const maxNewWords = Math.min(untestedCount, 20);
   const sessionStats = useMemo(() => getSessionStats(), [revision]);
+  const overview = useMemo(() => getOverviewStats(), [revision]);
 
   return {
     trends,
     trackedStats,
     improvingWords,
-    displayedTrends,
-    trackedOverflow,
     maxTrackedWords,
+    maxRetentionWords,
     untestedCount,
     maxNewWords,
     sessionStats,
+    overview,
     refresh,
   };
 }

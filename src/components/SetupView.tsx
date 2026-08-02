@@ -1,4 +1,5 @@
-import type { SessionStartMode, TrackedStats, WordStatistics } from '../types';
+import type { OverviewStats, SessionStartMode, WordStatistics } from '../types';
+import LearnedWordsList from './LearnedWordsList';
 
 interface SetupViewProps {
   hasApiKey: boolean;
@@ -9,11 +10,12 @@ interface SetupViewProps {
   onWordCountChange: (value: number) => void;
   onStartNew: () => void;
   improvingWords: WordStatistics[];
-  trackedStats: TrackedStats;
-  displayedTrends: WordStatistics[];
-  trackedOverflow: number;
+  learnedWords: WordStatistics[];
+  overview: OverviewStats;
+  hasStudiedWords: boolean;
   trackedWordCount: number;
   maxTrackedWords: number;
+  maxRetentionWords: number;
   onTrackedWordCountChange: (value: number) => void;
   onStartTracked: (mode: Extract<SessionStartMode, 'tracked-study' | 'tracked-test'>) => void;
 }
@@ -27,11 +29,12 @@ export default function SetupView({
   onWordCountChange,
   onStartNew,
   improvingWords,
-  trackedStats,
-  displayedTrends,
-  trackedOverflow,
+  learnedWords,
+  overview,
+  hasStudiedWords,
   trackedWordCount,
   maxTrackedWords,
+  maxRetentionWords,
   onTrackedWordCountChange,
   onStartTracked,
 }: SetupViewProps) {
@@ -67,6 +70,36 @@ export default function SetupView({
         )}
       </div>
 
+      <div className="spacer-section stats-panel">
+        <dl className="stats-list">
+          <div className="stats-row">
+            <dt>Total sessions</dt>
+            <dd>{overview.totalSessions}</dd>
+          </div>
+          <div className="stats-row stats-sub">
+            <dt>New</dt>
+            <dd>{overview.sessionsNew}</dd>
+          </div>
+          <div className="stats-row stats-sub">
+            <dt>Tracked study</dt>
+            <dd>{overview.sessionsTrackedStudy}</dd>
+          </div>
+          <div className="stats-row stats-sub">
+            <dt>Tracked test</dt>
+            <dd>{overview.sessionsTrackedTest}</dd>
+          </div>
+          <div className="stats-row">
+            <dt>Words learned</dt>
+            <dd>{overview.wordsLearned}</dd>
+          </div>
+          <div className="stats-row">
+            <dt>Total average</dt>
+            <dd>{overview.totalAverage}%</dd>
+          </div>
+        </dl>
+        <LearnedWordsList words={learnedWords} />
+      </div>
+
       {improvingWords.length > 0 && (
         <div className="spacer-section">
           <h2 className="section-title">Improving</h2>
@@ -81,30 +114,12 @@ export default function SetupView({
         </div>
       )}
 
-      {displayedTrends.length > 0 && (
+      {hasStudiedWords && (
         <div className="spacer-section">
-          <div className="section-header">
-            <h2 className="section-title">Tracked</h2>
-            <span className="section-stats">
-              {trackedStats.count} words · {trackedStats.overallAverage}% avg
-            </span>
-          </div>
-          <ul className="trend-list capped">
-            {displayedTrends.map((item) => (
-              <li key={item.word} className="trend-item">
-                <span>{item.word}</span>
-                <span className="trend-meta">
-                  {item.averageScore}% · {item.attemptCount}×
-                </span>
-              </li>
-            ))}
-          </ul>
-          {trackedOverflow > 0 && (
-            <p className="hint overflow-hint">+{trackedOverflow} more not shown</p>
-          )}
+          <h2 className="section-title">Tracked</h2>
           <div className="tracked-controls setup-form">
             <label>
-              Tracked · words per session
+              Words per session
               <input
                 type="number"
                 min={1}
@@ -112,16 +127,24 @@ export default function SetupView({
                 value={trackedWordCount}
                 onChange={(e) => onTrackedWordCountChange(Number(e.target.value))}
               />
-              <span className="hint">Weaker tracked words appear more often</span>
+              <span className="hint">
+                Study · weaker recall words appear more often
+              </span>
             </label>
             <div className="tracked-actions">
               <button onClick={() => onStartTracked('tracked-study')} disabled={!hasApiKey}>
                 Tracked study
               </button>
-              <button onClick={() => onStartTracked('tracked-test')} disabled={!hasApiKey}>
+              <button
+                onClick={() => onStartTracked('tracked-test')}
+                disabled={!hasApiKey || maxRetentionWords === 0}
+              >
                 Tracked test
               </button>
             </div>
+            <span className="hint">
+              Test · long-term retention, separate from study scores
+            </span>
           </div>
         </div>
       )}

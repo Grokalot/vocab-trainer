@@ -515,9 +515,40 @@ button.compact {
   white-space: nowrap;
 }
 
-.settings-panel {
+.app-footer {
   margin-top: auto;
   padding-top: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.settings-panel {
+  padding-top: 0;
+}
+
+.settings-panel-end {
+  margin-left: auto;
+}
+
+.settings-panel-end summary {
+  text-align: right;
+}
+
+.settings-panel[open] {
+  width: 100%;
+  flex-basis: 100%;
+}
+
+.settings-panel[open] > summary {
+  display: block;
+}
+
+.settings-panel-end[open] > summary {
+  text-align: right;
 }
 
 .settings-panel summary {
@@ -620,6 +651,73 @@ button.compact {
 .result-item p strong {
   color: var(--black);
   font-weight: 700;
+}
+
+.spacer-section > .section-title {
+  margin-bottom: 0.75rem;
+}
+
+.stats-panel {
+  border: 2px solid var(--black);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.stats-word-list {
+  margin: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.stats-view-words {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.stats-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.9rem;
+}
+
+.stats-row dt {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--gray-2);
+}
+
+.stats-row dd {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.stats-row.stats-sub dt {
+  padding-left: 0.75rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 0.8rem;
+}
+
+.stats-row.stats-sub dd {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--gray-2);
 }
 
 .spacer-section {
