@@ -65,6 +65,15 @@ export async function fetchDefinition(word: string): Promise<string> {
   return parsed.definition;
 }
 
+export async function fetchGptDefinition(word: string): Promise<string> {
+  const content = await callOpenAI(
+    `You define vocabulary words for learners. Give a concise definition covering the most common usages — one or two short sentences. Prefer general dictionary senses over regional, obscure, or highly specialized meanings unless those are the only senses. Respond with JSON: {"definition": "..."}`,
+    `Define the word "${word}" concisely for vocabulary study.`,
+  );
+  const parsed = JSON.parse(content) as DefinitionResponse;
+  return parsed.definition.trim();
+}
+
 export async function loadWordEntries(words: string[]): Promise<Word[]> {
   await loadBundledDefinitions();
 

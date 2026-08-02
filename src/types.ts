@@ -96,13 +96,24 @@ export type BundledDefinitions = Record<string, string>;
 
 // ── Session UI view-models ──────────────────────────────────────────────────
 
-export interface DefinitionEditView {
+export interface WordEditView {
   isEditing: boolean;
   draft: string;
   start: () => void;
   setDraft: (value: string) => void;
   save: () => void;
   cancel: () => void;
+}
+
+export interface DefinitionEditView {
+  isEditing: boolean;
+  draft: string;
+  fetchingGpt: boolean;
+  start: () => void;
+  setDraft: (value: string) => void;
+  save: () => void;
+  cancel: () => void;
+  fetchFromGpt: () => void;
 }
 
 export interface SessionLoadingState {
@@ -115,6 +126,7 @@ export interface StudyPhaseView {
   word: SessionWord;
   index: number;
   total: number;
+  wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
   canGoBack: boolean;
   isLast: boolean;
@@ -128,6 +140,7 @@ export interface RecallPhaseView {
   words: SessionWord[];
   index: number;
   total: number;
+  wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
   submitAnswer: (answer: string) => void;
   goHome: () => void;

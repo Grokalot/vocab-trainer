@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   AppPhase,
   RecallPhaseView,
@@ -28,11 +28,17 @@ interface UseStudySessionOptions {
     answer: string,
   ) => Promise<ReviewResult>;
   onSessionFinished: () => void;
+  fetchGptDefinition: (word: string) => Promise<string>;
+  renameWordInList: (oldWord: string, newWord: string) => void;
+  onWordRenamed: () => void;
 }
 
-function useDefinitionEdit(
+function useWordEdit(
   getWord: () => SessionWord | undefined,
-  updateDefinition: (word: string, definition: string) => void,
+  renameWordInSession: (oldWord: string, newWord: string) => void,
+  renameWordInList: (oldWord: string, newWord: string) => void,
+  onWordRenamed: () => void,
+  cancelDefinitionEdit: () => void,
   setError: (message: string) => void,
   resetKey: string,
 ) {
@@ -47,9 +53,76 @@ function useDefinitionEdit(
   const start = useCallback(() => {
     const current = getWord();
     if (!current) return;
+    cancelDefinitionEdit();
+    setDraft(current.word);
+    setIsEditing(true);
+  }, [getWord, cancelDefinitionEdit]);
+
+  const cancel = useCallback(() => {
+    setIsEditing(false);
+    setDraft('');
+  }, []);
+
+  const save = useCallback(() => {
+    const current = getWord();
+    if (!current) return;
+
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      setError('Enter a word.');
+      return;
+    }
+    if (trimmed === current.word) {
+      cancel();
+      return;
+    }
+
+    try {
+      renameWordInList(current.word, trimmed);
+      renameWordInSession(current.word, trimmed);
+      onWordRenamed();
+      cancel();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not rename word.');
+    }
+  }, [
+    getWord,
+    draft,
+    renameWordInList,
+    renameWordInSession,
+    onWordRenamed,
+    cancel,
+    setError,
+  ]);
+
+  return { isEditing, draft, start, setDraft, save, cancel };
+}
+
+function useDefinitionEdit(
+  getWord: () => SessionWord | undefined,
+  updateDefinition: (word: string, definition: string) => void,
+  fetchGptDefinition: (word: string) => Promise<string>,
+  cancelWordEdit: () => void,
+  setError: (message: string) => void,
+  resetKey: string,
+) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const [fetchingGpt, setFetchingGpt] = useState(false);
+
+  useEffect(() => {
+    setIsEditing(false);
+    setDraft('');
+    setFetchingGpt(false);
+  }, [resetKey]);
+
+  const start = useCallback(() => {
+    const current = getWord();
+    if (!current) return;
+    cancelWordEdit();
     setDraft(current.definition);
     setIsEditing(true);
-  }, [getWord]);
+  }, [getWord, cancelWordEdit]);
 
   const cancel = useCallback(() => {
     setIsEditing(false);
@@ -69,7 +142,23 @@ function useDefinitionEdit(
     }
   }, [getWord, draft, updateDefinition, cancel, setError]);
 
-  return { isEditing, draft, start, setDraft, save, cancel };
+  const fetchFromGpt = useCallback(async () => {
+    const current = getWord();
+    if (!current || fetchingGpt) return;
+
+    setFetchingGpt(true);
+    setError('');
+    try {
+      const definition = await fetchGptDefinition(current.word);
+      setDraft(definition);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not fetch definition from GPT.');
+    } finally {
+      setFetchingGpt(false);
+    }
+  }, [getWord, fetchGptDefinition, setError]);
+
+  return { isEditing, draft, fetchingGpt, start, setDraft, save, cancel, fetchFromGpt };
 }
 
 export function useStudySession({
@@ -79,6 +168,9 @@ export function useStudySession({
   loadSessionEntries,
   scoreAnswer,
   onSessionFinished,
+  fetchGptDefinition,
+  renameWordInList,
+  onWordRenamed,
 }: UseStudySessionOptions) {
   const [phase, setPhase] = useState<AppPhase>('setup');
   const [mode, setMode] = useState<SessionStartMode>('new');
@@ -97,6 +189,12 @@ export function useStudySession({
     );
   }, []);
 
+  const renameWordInSession = useCallback((oldWord: string, newWord: string) => {
+    setSessionWords((prev) =>
+      prev.map((item) => (item.word === oldWord ? { ...item, word: newWord } : item)),
+    );
+  }, []);
+
   const getStudyWord = useCallback(
     () => sessionWords[studyIndex],
     [sessionWords, studyIndex],
@@ -107,19 +205,50 @@ export function useStudySession({
     [sessionWords, testIndex],
   );
 
+  const studyWordCancelRef = useRef<() => void>(() => {});
+  const testWordCancelRef = useRef<() => void>(() => {});
+
   const studyDefinitionEdit = useDefinitionEdit(
     getStudyWord,
     updateWordDefinition,
+    fetchGptDefinition,
+    () => studyWordCancelRef.current(),
     setError,
     resetKey,
   );
 
-  const testDefinitionEdit = useDefinitionEdit(
-    getTestWord,
-    updateWordDefinition,
+  const studyWordEdit = useWordEdit(
+    getStudyWord,
+    renameWordInSession,
+    renameWordInList,
+    onWordRenamed,
+    studyDefinitionEdit.cancel,
     setError,
     resetKey,
   );
+
+  studyWordCancelRef.current = studyWordEdit.cancel;
+
+  const testDefinitionEdit = useDefinitionEdit(
+    getTestWord,
+    updateWordDefinition,
+    fetchGptDefinition,
+    () => testWordCancelRef.current(),
+    setError,
+    resetKey,
+  );
+
+  const testWordEdit = useWordEdit(
+    getTestWord,
+    renameWordInSession,
+    renameWordInList,
+    onWordRenamed,
+    testDefinitionEdit.cancel,
+    setError,
+    resetKey,
+  );
+
+  testWordCancelRef.current = testWordEdit.cancel;
 
   const startSession = useCallback(
     async (startMode: SessionStartMode) => {
@@ -166,13 +295,17 @@ export function useStudySession({
 
   const goHome = useCallback(() => {
     studyDefinitionEdit.cancel();
+    studyWordEdit.cancel();
     testDefinitionEdit.cancel();
+    testWordEdit.cancel();
     setPhase('setup');
     setSessionWords([]);
     onSessionFinished();
   }, [
     studyDefinitionEdit.cancel,
+    studyWordEdit.cancel,
     testDefinitionEdit.cancel,
+    testWordEdit.cancel,
     onSessionFinished,
   ]);
 
@@ -235,6 +368,7 @@ export function useStudySession({
       index: studyIndex,
       total: sessionWords.length,
       definitionEdit: studyDefinitionEdit,
+      wordEdit: studyWordEdit,
       canGoBack: studyIndex > 0,
       isLast: studyIndex >= sessionWords.length - 1,
       goBack: () => setStudyIndex((i) => i - 1),
@@ -247,6 +381,7 @@ export function useStudySession({
     sessionWords,
     studyIndex,
     studyDefinitionEdit,
+    studyWordEdit,
     beginRecall,
     goHome,
   ]);
@@ -259,10 +394,11 @@ export function useStudySession({
       index: testIndex,
       total: sessionWords.length,
       definitionEdit: testDefinitionEdit,
+      wordEdit: testWordEdit,
       submitAnswer,
       goHome,
     };
-  }, [phase, sessionWords, testIndex, testDefinitionEdit, submitAnswer, goHome]);
+  }, [phase, sessionWords, testIndex, testDefinitionEdit, testWordEdit, submitAnswer, goHome]);
 
   const results = useMemo((): ResultsPhaseView | null => {
     if (phase !== 'results') return null;

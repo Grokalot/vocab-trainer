@@ -21,6 +21,9 @@ export default function App() {
     trackedWordCount: wordLists.trackedWordCount,
     loadSessionEntries: ai.loadSessionEntries,
     scoreAnswer: ai.scoreAnswer,
+    fetchGptDefinition: ai.fetchDefinitionFromGpt,
+    renameWordInList: wordLists.renameWordInList,
+    onWordRenamed: statistics.refresh,
     onSessionFinished: statistics.refresh,
   });
 
@@ -76,6 +79,7 @@ export default function App() {
           index={session.study.index}
           total={session.study.total}
           definitionEdit={session.study.definitionEdit}
+          wordEdit={session.study.wordEdit}
           canGoBack={session.study.canGoBack}
           isLast={session.study.isLast}
           onGoBack={session.study.goBack}
@@ -91,6 +95,7 @@ export default function App() {
           index={session.recall.index}
           total={session.recall.total}
           definitionEdit={session.recall.definitionEdit}
+          wordEdit={session.recall.wordEdit}
           onSubmit={session.recall.submitAnswer}
           onHome={session.recall.goHome}
         />
@@ -134,6 +139,7 @@ export default function App() {
             onAddWord={wordLists.addWordToList}
             onRenameWord={wordLists.renameWordInList}
             onRefreshDefinitions={ai.refreshDefinitions}
+            onFetchGptDefinition={ai.fetchDefinitionFromGpt}
             onStatisticsChange={statistics.refresh}
           />
         )}

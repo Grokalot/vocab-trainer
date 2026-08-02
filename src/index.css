@@ -169,11 +169,38 @@ header p {
   align-items: flex-start;
   gap: 0.75rem;
   width: 100%;
+  min-width: 0;
 }
 
 .tile-header .tile-word {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tile-header-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.35rem;
+}
+
+.tile-header-editing {
+  flex-wrap: wrap;
+}
+
+.tile-word-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.35rem 0.5rem;
+  border: 2px solid var(--black);
+  background: var(--white);
 }
 
 .center-tile .definition-editor {
@@ -550,6 +577,7 @@ button.compact {
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 0.75rem;
+  min-width: 0;
 }
 
 .result-word {
@@ -558,6 +586,11 @@ button.compact {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .score-mark {
