@@ -20,6 +20,7 @@ export interface WordProgress {
   word: string;
   attempts: WordAttempt[];
   lastDefinition: string;
+  customDefinition?: boolean;
 }
 
 export interface SessionWord extends WordEntry {

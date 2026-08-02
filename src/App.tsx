@@ -3,6 +3,7 @@ import type { AppPhase, SessionWord } from './types';
 import { loadWordList } from './lib/words';
 import WordListManager from './components/WordListManager';
 import { loadWordEntries, scoreAttempt } from './lib/ai';
+import { syncBundledDefinitions } from './lib/definitions';
 import {
   getTrackedStats,
   getWordTrends,
@@ -10,6 +11,7 @@ import {
   pickTrackedWords,
   pickWords,
   recordAttempt,
+  saveDefinition,
   saveSettings,
   TRACKED_DISPLAY_LIMIT,
 } from './lib/storage';
@@ -26,11 +28,26 @@ export default function App() {
   const [error, setError] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [trends, setTrends] = useState(getWordTrends());
+  const [editingDefinition, setEditingDefinition] = useState(false);
+  const [definitionDraft, setDefinitionDraft] = useState('');
 
   useEffect(() => {
-    loadWordList()
-      .then(setAllWords)
-      .catch(() => setError('Could not load word list.'));
+    setEditingDefinition(false);
+    setDefinitionDraft('');
+  }, [studyIndex, testIndex, phase]);
+
+  useEffect(() => {
+    async function init() {
+      try {
+        const words = await loadWordList();
+        setAllWords(words);
+        await syncBundledDefinitions(words);
+      } catch {
+        setError('Could not load word list.');
+      }
+    }
+
+    init();
     setApiKey(loadSettings().openaiApiKey);
   }, []);
 
@@ -131,7 +148,36 @@ export default function App() {
     setWordCount((current) => Math.min(current, Math.max(1, words.length)));
   }
 
+  function cancelDefinitionEdit() {
+    setEditingDefinition(false);
+    setDefinitionDraft('');
+  }
+
+  function startDefinitionEdit() {
+    const index = phase === 'study' ? studyIndex : testIndex;
+    setDefinitionDraft(sessionWords[index].definition);
+    setEditingDefinition(true);
+  }
+
+  function saveSessionDefinition() {
+    const index = phase === 'study' ? studyIndex : testIndex;
+    const word = sessionWords[index].word;
+
+    try {
+      saveDefinition(word, definitionDraft);
+      setSessionWords((prev) =>
+        prev.map((item, i) =>
+          i === index ? { ...item, definition: definitionDraft.trim() } : item,
+        ),
+      );
+      cancelDefinitionEdit();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save definition.');
+    }
+  }
+
   function resetToSetup() {
+    cancelDefinitionEdit();
     setPhase('setup');
     setSessionWords([]);
     setTrends(getWordTrends());
@@ -265,8 +311,38 @@ export default function App() {
           </p>
 
           <article className="center-tile">
-            <h2 className="tile-word">{sessionWords[studyIndex].word}</h2>
-            <p className="tile-definition">{sessionWords[studyIndex].definition}</p>
+            <div className="tile-header">
+              <h2 className="tile-word">{sessionWords[studyIndex].word}</h2>
+              {!editingDefinition && (
+                <button
+                  type="button"
+                  className="compact ghost"
+                  onClick={startDefinitionEdit}
+                >
+                  Def
+                </button>
+              )}
+            </div>
+            {editingDefinition ? (
+              <div className="definition-editor">
+                <textarea
+                  value={definitionDraft}
+                  onChange={(e) => setDefinitionDraft(e.target.value)}
+                  rows={3}
+                  autoFocus
+                />
+                <div className="inline-form">
+                  <button type="button" className="compact" onClick={saveSessionDefinition}>
+                    Save
+                  </button>
+                  <button type="button" className="compact ghost" onClick={cancelDefinitionEdit}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="tile-definition">{sessionWords[studyIndex].definition}</p>
+            )}
           </article>
 
           <ProgressSquares activeIndex={studyIndex} completedBefore={false} />
@@ -286,6 +362,9 @@ export default function App() {
               <button onClick={beginTest}>Ready</button>
             )}
           </div>
+          <button type="button" className="ghost home-button" onClick={resetToSetup}>
+            Home
+          </button>
         </div>
       )}
 
@@ -296,13 +375,43 @@ export default function App() {
           </p>
 
           <article className="center-tile">
-            <h2 className="tile-word">{sessionWords[testIndex].word}</h2>
-            <textarea
-              placeholder="Define this word…"
-              value={sessionWords[testIndex].userAnswer ?? ''}
-              onChange={(e) => updateAnswer(e.target.value)}
-              autoFocus
-            />
+            <div className="tile-header">
+              <h2 className="tile-word">{sessionWords[testIndex].word}</h2>
+              {!editingDefinition && (
+                <button
+                  type="button"
+                  className="compact ghost"
+                  onClick={startDefinitionEdit}
+                >
+                  Def
+                </button>
+              )}
+            </div>
+            {editingDefinition ? (
+              <div className="definition-editor">
+                <textarea
+                  value={definitionDraft}
+                  onChange={(e) => setDefinitionDraft(e.target.value)}
+                  rows={3}
+                  autoFocus
+                />
+                <div className="inline-form">
+                  <button type="button" className="compact" onClick={saveSessionDefinition}>
+                    Save
+                  </button>
+                  <button type="button" className="compact ghost" onClick={cancelDefinitionEdit}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <textarea
+                placeholder="Define this word…"
+                value={sessionWords[testIndex].userAnswer ?? ''}
+                onChange={(e) => updateAnswer(e.target.value)}
+                autoFocus
+              />
+            )}
           </article>
 
           <ProgressSquares activeIndex={testIndex} completedBefore />
@@ -310,11 +419,16 @@ export default function App() {
           <div className="nav-row">
             <button
               onClick={submitAnswer}
-              disabled={!sessionWords[testIndex].userAnswer?.trim()}
+              disabled={
+                editingDefinition || !sessionWords[testIndex].userAnswer?.trim()
+              }
             >
               {testIndex < sessionWords.length - 1 ? 'Submit' : 'Finish'}
             </button>
           </div>
+          <button type="button" className="ghost home-button" onClick={resetToSetup}>
+            Home
+          </button>
         </div>
       )}
 

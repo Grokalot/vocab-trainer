@@ -133,7 +133,44 @@ export function getTrackedStats(): { count: number; overallAverage: number } {
 
 export function getCachedDefinition(word: string): string | undefined {
   const progress = loadProgress();
-  return progress[wordKey(word)]?.lastDefinition;
+  const definition = progress[wordKey(word)]?.lastDefinition;
+  return definition || undefined;
+}
+
+export function isCustomDefinition(word: string): boolean {
+  return Boolean(loadProgress()[wordKey(word)]?.customDefinition);
+}
+
+export function saveDefinition(word: string, definition: string): void {
+  const trimmed = definition.trim();
+  if (!trimmed) {
+    throw new Error('Enter a definition.');
+  }
+
+  const progress = loadProgress();
+  const key = wordKey(word);
+  const existing = progress[key] ?? { word, attempts: [], lastDefinition: '' };
+
+  existing.lastDefinition = trimmed;
+  existing.word = word;
+  existing.customDefinition = true;
+  progress[key] = existing;
+  saveProgress(progress);
+}
+
+export function saveDictionaryDefinition(word: string, definition: string): void {
+  const trimmed = definition.trim();
+  if (!trimmed) return;
+
+  const progress = loadProgress();
+  const key = wordKey(word);
+  const existing = progress[key] ?? { word, attempts: [], lastDefinition: '' };
+
+  existing.lastDefinition = trimmed;
+  existing.word = word;
+  existing.customDefinition = false;
+  progress[key] = existing;
+  saveProgress(progress);
 }
 
 export function wordKey(word: string): string {

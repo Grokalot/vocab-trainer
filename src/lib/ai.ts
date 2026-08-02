@@ -1,5 +1,15 @@
 import type { ScoreResult, WordEntry } from '../types';
-import { getCachedDefinition, loadSettings } from './storage';
+import {
+  fetchDictionaryComDefinition,
+  getBundledDefinition,
+  loadBundledDefinitions,
+} from './dictionaryCom';
+import { resolveStoredDefinition } from './definitions';
+import {
+  loadSettings,
+  saveDictionaryDefinition,
+} from './storage';
+
 async function callOpenAI(
   systemPrompt: string,
   userPrompt: string,
@@ -16,7 +26,7 @@ async function callOpenAI(
       Authorization: `Bearer ${openaiApiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.6-luna',
       temperature: 0.2,
       response_format: { type: 'json_object' },
       messages: [
@@ -36,36 +46,33 @@ async function callOpenAI(
 }
 
 export async function fetchDefinition(word: string): Promise<string> {
-  const cleaned = word.split(/[/:]/)[0].trim();
-  try {
-    const response = await fetch(
-      `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(cleaned)}`,
-    );
-    if (response.ok) {
-      const data = await response.json();
-      const meaning = data[0]?.meanings?.[0]?.definitions?.[0]?.definition;
-      if (meaning) return meaning;
-    }
-  } catch {
-    // fall through to AI
-  }
+  const fromDictionary = await fetchDictionaryComDefinition(word);
+  if (fromDictionary) return fromDictionary;
+
+  const bundled = getBundledDefinition(word);
+  if (bundled) return bundled;
 
   const content = await callOpenAI(
-    'You define vocabulary words concisely for learners. Respond with JSON: {"definition": "..."}',
-    `Define the word "${word}" in one clear sentence suitable for study.`,
+    `You define vocabulary words for learners. Give the most common, general dictionary sense — not regional dishes, obscure proper nouns, or highly specialized jargon unless that is the only meaning. Respond with JSON: {"definition": "..."}`,
+    `Define the word "${word}" in one clear sentence suitable for vocabulary study.`,
   );
   const parsed = JSON.parse(content) as { definition: string };
   return parsed.definition;
 }
 
 export async function loadWordEntries(words: string[]): Promise<WordEntry[]> {
+  await loadBundledDefinitions();
+
   const entries = await Promise.all(
     words.map(async (word) => {
-      const cached = getCachedDefinition(word);
+      const cached = resolveStoredDefinition(word);
       if (cached) {
         return { word, definition: cached };
       }
-      return { word, definition: await fetchDefinition(word) };
+
+      const definition = await fetchDefinition(word);
+      saveDictionaryDefinition(word, definition);
+      return { word, definition };
     }),
   );
   return entries;
@@ -91,3 +98,6 @@ User's attempt: ${userAnswer}`,
     feedback: parsed.feedback,
   };
 }
+
+export { loadBundledDefinitions, refreshDefinitionsForWords } from './dictionaryCom';
+export { isCustomDefinition, saveDictionaryDefinition } from './storage';
