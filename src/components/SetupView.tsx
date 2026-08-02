@@ -1,4 +1,5 @@
 import type { OverviewStats, SessionStartMode, WordStatistics } from '../types';
+import BrainProgress from './BrainProgress';
 import LearnedWordsList from './LearnedWordsList';
 
 interface SetupViewProps {
@@ -42,6 +43,10 @@ export default function SetupView({
 
   return (
     <>
+      {totalWords > 0 && (
+        <BrainProgress learned={overview.wordsLearned} total={totalWords} />
+      )}
+
       <div className="panel setup-form">
         <label>
           New · words per session
