@@ -321,6 +321,19 @@ header p {
   text-align: right;
 }
 
+.tracked-controls {
+  margin-top: 1rem;
+}
+
+.tracked-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.tracked-actions button {
+  flex: 1;
+}
+
 .tracked-start {
   width: 100%;
   margin-top: 1rem;

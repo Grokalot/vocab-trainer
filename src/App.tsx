@@ -19,6 +19,7 @@ import {
 export default function App() {
   const [phase, setPhase] = useState<AppPhase>('setup');
   const [wordCount, setWordCount] = useState(5);
+  const [trackedWordCount, setTrackedWordCount] = useState(5);
   const [allWords, setAllWords] = useState<string[]>([]);
   const [sessionWords, setSessionWords] = useState<SessionWord[]>([]);
   const [studyIndex, setStudyIndex] = useState(0);
@@ -53,25 +54,27 @@ export default function App() {
 
   const maxWords = Math.min(allWords.length, 20);
   const trackedStats = getTrackedStats();
+  const maxTrackedWords = Math.min(trackedStats.count, 20);
   const displayedTrends = trends.slice(0, TRACKED_DISPLAY_LIMIT);
   const trackedOverflow = trends.length - displayedTrends.length;
 
-  async function startSession(mode: 'mixed' | 'tracked') {
+  async function startSession(mode: 'mixed' | 'tracked-study' | 'tracked-test') {
     setError('');
     setLoading(true);
     setLoadingMessage('Selecting words and fetching definitions…');
 
     try {
+      const count = mode === 'mixed' ? wordCount : trackedWordCount;
       const selected =
-        mode === 'tracked'
-          ? pickTrackedWords(wordCount)
-          : pickWords(allWords, wordCount);
+        mode === 'mixed'
+          ? pickWords(allWords, count)
+          : pickTrackedWords(count);
 
       if (selected.length === 0) {
         setError(
-          mode === 'tracked'
-            ? 'No tracked words yet. Complete a mixed session first.'
-            : 'No words available.',
+          mode === 'mixed'
+            ? 'No words available.'
+            : 'No tracked words yet. Complete a mixed session first.',
         );
         return;
       }
@@ -80,7 +83,7 @@ export default function App() {
       setSessionWords(entries);
       setStudyIndex(0);
       setTestIndex(0);
-      setPhase('study');
+      setPhase(mode === 'tracked-test' ? 'test' : 'study');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start session.');
     } finally {
@@ -231,7 +234,7 @@ export default function App() {
         <>
           <div className="panel setup-form">
             <label>
-              Words per session
+              Mixed · words per session
               <input
                 type="number"
                 min={1}
@@ -292,13 +295,37 @@ export default function App() {
                   +{trackedOverflow} more not shown
                 </p>
               )}
-              <button
-                className="tracked-start"
-                onClick={() => startSession('tracked')}
-                disabled={!apiKey.trim()}
-              >
-                Start tracked
-              </button>
+              <div className="tracked-controls setup-form">
+                <label>
+                  Tracked · words per session
+                  <input
+                    type="number"
+                    min={1}
+                    max={maxTrackedWords || 20}
+                    value={trackedWordCount}
+                    onChange={(e) =>
+                      setTrackedWordCount(
+                        Math.max(1, Math.min(maxTrackedWords || 20, Number(e.target.value))),
+                      )
+                    }
+                  />
+                  <span className="hint">Weaker tracked words appear more often</span>
+                </label>
+                <div className="tracked-actions">
+                  <button
+                    onClick={() => startSession('tracked-study')}
+                    disabled={!apiKey.trim()}
+                  >
+                    Tracked study
+                  </button>
+                  <button
+                    onClick={() => startSession('tracked-test')}
+                    disabled={!apiKey.trim()}
+                  >
+                    Tracked test
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </>

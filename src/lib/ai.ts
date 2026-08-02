@@ -27,7 +27,6 @@ async function callOpenAI(
     },
     body: JSON.stringify({
       model: 'gpt-5.6-luna',
-      temperature: 0.2,
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: systemPrompt },
