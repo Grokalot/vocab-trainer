@@ -1,12 +1,18 @@
-import type { Trend, WordProgress, WordTrend } from '../types';
+import type {
+  AppSettings,
+  Attempt,
+  ProgressStore,
+  TrackedStats,
+  Trend,
+  WordProgress,
+  WordStatistics,
+  WeightedWord,
+} from '../types';
 
 const PROGRESS_KEY = 'vocab-trainer-progress';
 const SETTINGS_KEY = 'vocab-trainer-settings';
 
 export const TRACKED_DISPLAY_LIMIT = 10;
-export interface AppSettings {
-  openaiApiKey: string;
-}
 
 const defaultSettings: AppSettings = {
   openaiApiKey: '',
@@ -16,7 +22,8 @@ export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...defaultSettings };
-    return { ...defaultSettings, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw) as Partial<AppSettings>;
+    return { ...defaultSettings, ...parsed };
   } catch {
     return { ...defaultSettings };
   }
@@ -26,17 +33,17 @@ export function saveSettings(settings: AppSettings): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
 }
 
-export function loadProgress(): Record<string, WordProgress> {
+export function loadProgress(): ProgressStore {
   try {
     const raw = localStorage.getItem(PROGRESS_KEY);
     if (!raw) return {};
-    return JSON.parse(raw);
+    return JSON.parse(raw) as ProgressStore;
   } catch {
     return {};
   }
 }
 
-export function saveProgress(progress: Record<string, WordProgress>): void {
+export function saveProgress(progress: ProgressStore): void {
   localStorage.setItem(PROGRESS_KEY, JSON.stringify(progress));
 }
 
@@ -50,22 +57,24 @@ export function recordAttempt(
   const key = wordKey(word);
   const existing = progress[key] ?? { word, attempts: [], lastDefinition: definition };
 
-  existing.attempts.push({
+  const attempt: Attempt = {
     timestamp: Date.now(),
     score,
     userAnswer,
-  });
+  };
+
+  existing.attempts.push(attempt);
   existing.lastDefinition = definition;
   progress[key] = existing;
   saveProgress(progress);
 }
 
-export function getWordTrends(): WordTrend[] {
+export function getWordTrends(): WordStatistics[] {
   const progress = loadProgress();
 
   return Object.values(progress)
     .filter((entry) => entry.attempts.length > 0)
-    .map((entry) => {
+    .map((entry): WordStatistics => {
       const scores = entry.attempts.map((a) => a.score);
       const averageScore = scores.reduce((a, b) => a + b, 0) / scores.length;
       const recent = scores.slice(-3);
@@ -95,20 +104,24 @@ export function getWordTrends(): WordTrend[] {
     });
 }
 
-export function pickWords(allWords: string[], count: number): string[] {
+export function getUntestedWords(allWords: string[]): string[] {
   const progress = loadProgress();
-  const weighted = allWords.map((word) => {
-    const key = wordKey(word);
-    const entry = progress[key];
-    const lastScore = entry?.attempts.at(-1)?.score;
-    const weight = lastScore === undefined ? 2 : Math.max(1, 100 - lastScore);
-    return { word, weight };
+  return allWords.filter((word) => {
+    const entry = progress[wordKey(word)];
+    return !entry?.attempts.length;
   });
-
-  return weightedPick(weighted, count);
 }
 
-export function getTrackedStats(): { count: number; overallAverage: number } {
+export function pickNewWords(allWords: string[], count: number): string[] {
+  const pool = [...getUntestedWords(allWords)];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, Math.min(count, pool.length));
+}
+
+export function getTrackedStats(): TrackedStats {
   const progress = loadProgress();
   const entries = Object.values(progress).filter((entry) => entry.attempts.length > 0);
 
@@ -149,7 +162,7 @@ export function saveDefinition(word: string, definition: string): void {
 
   const progress = loadProgress();
   const key = wordKey(word);
-  const existing = progress[key] ?? { word, attempts: [], lastDefinition: '' };
+  const existing: WordProgress = progress[key] ?? { word, attempts: [], lastDefinition: '' };
 
   existing.lastDefinition = trimmed;
   existing.word = word;
@@ -164,7 +177,7 @@ export function saveDictionaryDefinition(word: string, definition: string): void
 
   const progress = loadProgress();
   const key = wordKey(word);
-  const existing = progress[key] ?? { word, attempts: [], lastDefinition: '' };
+  const existing: WordProgress = progress[key] ?? { word, attempts: [], lastDefinition: '' };
 
   existing.lastDefinition = trimmed;
   existing.word = word;
@@ -210,7 +223,7 @@ export function migrateWordProgress(oldWord: string, newWord: string): void {
   saveProgress(progress);
 }
 
-function weightedPick(pool: { word: string; weight: number }[], count: number): string[] {
+function weightedPick(pool: WeightedWord[], count: number): string[] {
   const selected: string[] = [];
   const remaining = [...pool];
 

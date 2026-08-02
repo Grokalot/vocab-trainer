@@ -1,4 +1,10 @@
-import type { ScoreResult, WordEntry } from '../types';
+import type {
+  DefinitionResponse,
+  OpenAIChatCompletionResponse,
+  ReviewResponse,
+  ReviewResult,
+  Word,
+} from '../types';
 import {
   fetchDictionaryComDefinition,
   getBundledDefinition,
@@ -40,8 +46,8 @@ async function callOpenAI(
     throw new Error(`OpenAI request failed: ${errorText}`);
   }
 
-  const data = await response.json();
-  return data.choices[0].message.content as string;
+  const data = (await response.json()) as OpenAIChatCompletionResponse;
+  return data.choices[0].message.content;
 }
 
 export async function fetchDefinition(word: string): Promise<string> {
@@ -55,15 +61,15 @@ export async function fetchDefinition(word: string): Promise<string> {
     `You define vocabulary words for learners. Give the most common, general dictionary sense — not regional dishes, obscure proper nouns, or highly specialized jargon unless that is the only meaning. Respond with JSON: {"definition": "..."}`,
     `Define the word "${word}" in one clear sentence suitable for vocabulary study.`,
   );
-  const parsed = JSON.parse(content) as { definition: string };
+  const parsed = JSON.parse(content) as DefinitionResponse;
   return parsed.definition;
 }
 
-export async function loadWordEntries(words: string[]): Promise<WordEntry[]> {
+export async function loadWordEntries(words: string[]): Promise<Word[]> {
   await loadBundledDefinitions();
 
   const entries = await Promise.all(
-    words.map(async (word) => {
+    words.map(async (word): Promise<Word> => {
       const cached = resolveStoredDefinition(word);
       if (cached) {
         return { word, definition: cached };
@@ -81,7 +87,7 @@ export async function scoreAttempt(
   word: string,
   correctDefinition: string,
   userAnswer: string,
-): Promise<ScoreResult> {
+): Promise<ReviewResult> {
   const content = await callOpenAI(
     `You score vocabulary recall attempts. Compare the user's definition to the reference.
 Score 0-100 where 100 means fully correct meaning (wording can differ).
@@ -91,7 +97,7 @@ Reference definition: ${correctDefinition}
 User's attempt: ${userAnswer}`,
   );
 
-  const parsed = JSON.parse(content) as ScoreResult;
+  const parsed = JSON.parse(content) as ReviewResponse;
   return {
     score: Math.max(0, Math.min(100, Math.round(parsed.score))),
     feedback: parsed.feedback,

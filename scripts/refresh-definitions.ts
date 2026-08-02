@@ -6,6 +6,7 @@ import {
   fetchDictionaryComDefinition,
 } from '../src/lib/dictionaryCom.ts';
 import { wordKey } from '../src/lib/storage.ts';
+import type { BundledDefinitions } from '../src/types.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
@@ -19,7 +20,7 @@ async function main() {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const definitions: Record<string, string> = {};
+  const definitions: BundledDefinitions = {};
   const missed: string[] = [];
   const delayMs = Number(process.env.DEFINITION_DELAY_MS ?? 350);
 

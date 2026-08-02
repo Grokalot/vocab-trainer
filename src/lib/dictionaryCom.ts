@@ -1,11 +1,16 @@
 import { wordKey } from './storage';
+import type {
+  BundledDefinitions,
+  RefreshDefinitionsOptions,
+  RefreshResult,
+} from '../types';
 
 const BROWSER_PROXY_PREFIX = '/api/dictionary';
 const DICTIONARY_ORIGIN = 'https://www.dictionary.com';
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
-let bundledDefinitions: Record<string, string> | null = null;
+let bundledDefinitions: BundledDefinitions | null = null;
 
 export function toDictionarySlug(word: string): string {
   return word
@@ -84,13 +89,13 @@ export async function fetchDictionaryComDefinition(word: string): Promise<string
   return undefined;
 }
 
-export async function loadBundledDefinitions(): Promise<Record<string, string>> {
+export async function loadBundledDefinitions(): Promise<BundledDefinitions> {
   if (bundledDefinitions) return bundledDefinitions;
 
   try {
     const response = await fetch('/definitions.json');
     if (response.ok) {
-      bundledDefinitions = (await response.json()) as Record<string, string>;
+      bundledDefinitions = (await response.json()) as BundledDefinitions;
       return bundledDefinitions;
     }
   } catch {
@@ -109,25 +114,12 @@ export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export interface RefreshProgress {
-  done: number;
-  total: number;
-  word: string;
-  updated: number;
-  skipped: number;
-  missed: number;
-}
+export type { RefreshProgress, RefreshResult } from '../types';
 
 export async function refreshDefinitionsForWords(
   words: string[],
-  options: {
-    respectCustom?: boolean;
-    isCustomDefinition?: (word: string) => boolean;
-    onProgress?: (progress: RefreshProgress) => void;
-    applyDefinition: (word: string, definition: string) => void;
-    delayMs?: number;
-  },
-): Promise<{ updated: number; skipped: number; missed: string[] }> {
+  options: RefreshDefinitionsOptions,
+): Promise<RefreshResult> {
   const {
     respectCustom = true,
     isCustomDefinition,
