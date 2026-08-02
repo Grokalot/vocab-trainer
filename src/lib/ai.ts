@@ -16,6 +16,32 @@ import {
   saveDictionaryDefinition,
 } from './storage';
 
+const MAX_RETRIES = 3;
+const BASE_RETRY_DELAY_MS = 1000;
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function formatOpenAIError(status: number, errorText: string): string {
+  let detail = errorText;
+  try {
+    const parsed = JSON.parse(errorText) as { error?: { message?: string; type?: string } };
+    if (parsed.error?.message) {
+      detail = parsed.error.message;
+    }
+  } catch {
+    // Keep raw error text when it is not JSON.
+  }
+
+  if (RETRYABLE_STATUS.has(status)) {
+    return `OpenAI is temporarily unavailable (${detail}). Your answer was kept — try Submit again.`;
+  }
+
+  return `OpenAI request failed: ${detail}`;
+}
+
 async function callOpenAI(
   systemPrompt: string,
   userPrompt: string,
@@ -25,29 +51,54 @@ async function callOpenAI(
     throw new Error('Add your OpenAI API key in Settings to use AI features.');
   }
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${openaiApiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-5.6-luna',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`OpenAI request failed: ${errorText}`);
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiApiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'gpt-5.6-luna',
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(formatOpenAIError(response.status, errorText));
+
+        if (RETRYABLE_STATUS.has(response.status) && attempt < MAX_RETRIES) {
+          lastError = error;
+          await sleep(BASE_RETRY_DELAY_MS * 2 ** attempt);
+          continue;
+        }
+
+        throw error;
+      }
+
+      const data = (await response.json()) as OpenAIChatCompletionResponse;
+      return data.choices[0].message.content;
+    } catch (err) {
+      const isNetworkError = err instanceof TypeError;
+      if (isNetworkError && attempt < MAX_RETRIES) {
+        lastError = err instanceof Error ? err : new Error('Network error');
+        await sleep(BASE_RETRY_DELAY_MS * 2 ** attempt);
+        continue;
+      }
+
+      throw err instanceof Error ? err : new Error('OpenAI request failed.');
+    }
   }
 
-  const data = (await response.json()) as OpenAIChatCompletionResponse;
-  return data.choices[0].message.content;
+  throw lastError ?? new Error('OpenAI request failed after retries.');
 }
 
 export async function fetchDefinition(word: string): Promise<string> {

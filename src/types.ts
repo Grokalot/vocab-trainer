@@ -174,6 +174,8 @@ export interface DefinitionEditView {
 export interface SessionLoadingState {
   active: boolean;
   message: string;
+  /** When true, hide phase views and show the full-page loading state. */
+  blocksUI: boolean;
 }
 
 export interface StudyPhaseView {
@@ -197,7 +199,7 @@ export interface RecallPhaseView {
   total: number;
   wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
-  submitAnswer: (answer: string) => void;
+  submitAnswer: (answer: string) => Promise<boolean>;
   goHome: () => void;
 }
 

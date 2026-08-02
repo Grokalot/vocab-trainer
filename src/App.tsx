@@ -38,18 +38,18 @@ export default function App() {
     <div className="app">
       <header>
         <h1>Vocab</h1>
-        <p>Study · Recall · Improve</p>
+        <p>The limits of my language are the limits of my world - Ludwig Wittgenstein</p>
       </header>
 
       {error && <div className="error">{error}</div>}
 
-      {session.loading.active && (
+      {session.loading.active && session.loading.blocksUI && (
         <div className="loading">
           <p>{session.loading.message || 'Loading…'}</p>
         </div>
       )}
 
-      {!session.loading.active && session.phase === 'setup' && (
+      {!(session.loading.active && session.loading.blocksUI) && session.phase === 'setup' && (
         <SetupView
           hasApiKey={settings.hasApiKey}
           wordCount={wordLists.newWordCount}
@@ -81,7 +81,7 @@ export default function App() {
         />
       )}
 
-      {!session.loading.active && session.study && (
+      {!(session.loading.active && session.loading.blocksUI) && session.study && (
         <StudyPhase
           words={session.study.words}
           word={session.study.word}
@@ -98,19 +98,20 @@ export default function App() {
         />
       )}
 
-      {!session.loading.active && session.recall && (
+      {session.recall && (
         <RecallPhase
           words={session.recall.words}
           index={session.recall.index}
           total={session.recall.total}
           definitionEdit={session.recall.definitionEdit}
           wordEdit={session.recall.wordEdit}
+          submitting={session.loading.active && !session.loading.blocksUI}
           onSubmit={session.recall.submitAnswer}
           onHome={session.recall.goHome}
         />
       )}
 
-      {!session.loading.active && session.results && (
+      {!(session.loading.active && session.loading.blocksUI) && session.results && (
         <ResultsPhase
           average={session.results.average}
           words={session.results.words}

@@ -183,6 +183,7 @@ export function useStudySession({
   const [testIndex, setTestIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const [loadingBlocksUI, setLoadingBlocksUI] = useState(false);
   const [error, setError] = useState('');
 
   const resetKey = `${phase}-${studyIndex}-${testIndex}`;
@@ -258,6 +259,7 @@ export function useStudySession({
     async (startMode: SessionStartMode) => {
       setError('');
       setLoading(true);
+      setLoadingBlocksUI(true);
       setLoadingMessage('Selecting words and fetching definitions…');
 
       try {
@@ -290,6 +292,7 @@ export function useStudySession({
         setError(err instanceof Error ? err.message : 'Failed to start session.');
       } finally {
         setLoading(false);
+        setLoadingBlocksUI(false);
         setLoadingMessage('');
       }
     },
@@ -318,15 +321,16 @@ export function useStudySession({
   ]);
 
   const submitAnswer = useCallback(
-    async (answer: string) => {
+    async (answer: string): Promise<boolean> => {
       const trimmed = answer.trim();
-      if (!trimmed) return;
+      if (!trimmed) return false;
 
       const current = sessionWords[testIndex];
-      if (!current) return;
+      if (!current) return false;
 
       setError('');
       setLoading(true);
+      setLoadingBlocksUI(false);
       setLoadingMessage(`Scoring "${current.word}"…`);
 
       try {
@@ -363,8 +367,11 @@ export function useStudySession({
           onSessionFinished();
           setPhase('results');
         }
+
+        return true;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Scoring failed.');
+        return false;
       } finally {
         setLoading(false);
         setLoadingMessage('');
@@ -437,6 +444,7 @@ export function useStudySession({
   const loadingState: SessionLoadingState = {
     active: loading,
     message: loadingMessage,
+    blocksUI: loadingBlocksUI,
   };
 
   return {

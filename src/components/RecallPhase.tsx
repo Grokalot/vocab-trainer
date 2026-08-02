@@ -10,7 +10,8 @@ interface RecallPhaseProps {
   total: number;
   wordEdit: WordEditView;
   definitionEdit: DefinitionEditView;
-  onSubmit: (answer: string) => void;
+  submitting: boolean;
+  onSubmit: (answer: string) => Promise<boolean>;
   onHome: () => void;
 }
 
@@ -20,6 +21,7 @@ export default function RecallPhase({
   total,
   wordEdit,
   definitionEdit,
+  submitting,
   onSubmit,
   onHome,
 }: RecallPhaseProps) {
@@ -34,6 +36,7 @@ export default function RecallPhase({
       word={word}
       wordEdit={wordEdit}
       definitionEdit={definitionEdit}
+      submitting={submitting}
       onSubmit={onSubmit}
       onHome={onHome}
     />
@@ -47,20 +50,23 @@ function RecallPhaseInner({
   word,
   wordEdit,
   definitionEdit,
+  submitting,
   onSubmit,
   onHome,
 }: RecallPhaseProps & { word: SessionWord }) {
   const [answerDraft, setAnswerDraft] = useState('');
-  const tileLocked = wordEdit.isEditing || definitionEdit.isEditing;
+  const tileLocked = wordEdit.isEditing || definitionEdit.isEditing || submitting;
 
   useEffect(() => {
     setAnswerDraft('');
   }, [word.word]);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!answerDraft.trim() || tileLocked) return;
-    onSubmit(answerDraft);
-    setAnswerDraft('');
+    const success = await onSubmit(answerDraft);
+    if (success) {
+      setAnswerDraft('');
+    }
   }
 
   function handleAnswerKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
@@ -101,6 +107,7 @@ function RecallPhaseInner({
                 placeholder="Type the definition…"
                 rows={4}
                 autoFocus
+                disabled={submitting}
               />
             </label>
           )
@@ -111,7 +118,7 @@ function RecallPhaseInner({
 
       <div className="nav-row">
         <button onClick={handleSubmit} disabled={!answerDraft.trim() || tileLocked}>
-          Submit
+          {submitting ? 'Scoring…' : 'Submit'}
         </button>
       </div>
       <button type="button" className="ghost home-button" onClick={onHome}>
