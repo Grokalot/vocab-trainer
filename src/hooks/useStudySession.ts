@@ -9,6 +9,7 @@ import type {
   SessionWord,
   StudyPhaseView,
   Word,
+  SessionCompletionSummary,
 } from '../types';
 import {
   pickNewWords,
@@ -28,6 +29,7 @@ interface UseStudySessionOptions {
     answer: string,
   ) => Promise<ReviewResult>;
   onSessionFinished: () => void;
+  onSessionCompleted?: (summary: SessionCompletionSummary) => void;
   fetchGptDefinition: (word: string) => Promise<string>;
   renameWordInList: (oldWord: string, newWord: string) => void;
   onWordRenamed: () => void;
@@ -168,6 +170,7 @@ export function useStudySession({
   loadSessionEntries,
   scoreAnswer,
   onSessionFinished,
+  onSessionCompleted,
   fetchGptDefinition,
   renameWordInList,
   onWordRenamed,
@@ -325,17 +328,28 @@ export function useStudySession({
         const review = await scoreAnswer(current.word, current.definition, trimmed);
         recordAttempt(current.word, current.definition, trimmed, review.score);
 
-        setSessionWords((prev) =>
-          prev.map((item, index) =>
-            index === testIndex
-              ? { ...item, userAnswer: trimmed, review }
-              : item,
-          ),
+        const updatedWords = sessionWords.map((item, index) =>
+          index === testIndex
+            ? { ...item, userAnswer: trimmed, review }
+            : item,
         );
+
+        setSessionWords(updatedWords);
 
         if (testIndex < sessionWords.length - 1) {
           setTestIndex((i) => i + 1);
         } else {
+          const averageScore = Math.round(
+            updatedWords.reduce((sum, w) => sum + (w.review?.score ?? 0), 0) /
+              updatedWords.length,
+          );
+
+          onSessionCompleted?.({
+            mode,
+            wordCount: updatedWords.length,
+            averageScore,
+            words: updatedWords,
+          });
           onSessionFinished();
           setPhase('results');
         }
@@ -346,7 +360,7 @@ export function useStudySession({
         setLoadingMessage('');
       }
     },
-    [sessionWords, testIndex, scoreAnswer, onSessionFinished],
+    [sessionWords, testIndex, mode, scoreAnswer, onSessionCompleted, onSessionFinished],
   );
 
   const sessionAverage = useMemo(() => {

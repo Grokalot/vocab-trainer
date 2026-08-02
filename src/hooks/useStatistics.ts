@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { getSessionStats } from '../lib/sessionStats';
 import {
   getTrackedStats,
   getUntestedWords,
@@ -8,10 +9,12 @@ import {
 import type { StudyStatistics, WordStatistics } from '../types';
 
 export function useStatistics(allWords: string[]): StudyStatistics & { refresh: () => void } {
+  const [revision, setRevision] = useState(0);
   const [trends, setTrends] = useState<WordStatistics[]>(() => getWordTrends());
 
   const refresh = useCallback(() => {
     setTrends(getWordTrends());
+    setRevision((current) => current + 1);
   }, []);
 
   const trackedStats = useMemo(() => getTrackedStats(), [trends]);
@@ -30,6 +33,7 @@ export function useStatistics(allWords: string[]): StudyStatistics & { refresh: 
     [allWords, trends],
   );
   const maxNewWords = Math.min(untestedCount, 20);
+  const sessionStats = useMemo(() => getSessionStats(), [revision]);
 
   return {
     trends,
@@ -40,6 +44,7 @@ export function useStatistics(allWords: string[]): StudyStatistics & { refresh: 
     maxTrackedWords,
     untestedCount,
     maxNewWords,
+    sessionStats,
     refresh,
   };
 }

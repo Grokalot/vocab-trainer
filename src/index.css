@@ -1,15 +1,21 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   font-family: 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #000;
-  background: #fff;
-  --gray-1: #d3d6da;
-  --gray-2: #878a8c;
-  --gray-3: #f6f7f8;
-  --black: #000;
-  --white: #fff;
+  --bg: #121213;
+  --surface: #1a1a1b;
+  --surface-hover: #252526;
+  --fg: #f6f7f8;
+  --fg-muted: #818384;
+  --border-subtle: #3a3a3c;
+  --gray-1: var(--border-subtle);
+  --gray-2: var(--fg-muted);
+  --gray-3: var(--surface-hover);
+  --black: var(--fg);
+  --white: var(--bg);
+  color: var(--fg);
+  background: var(--bg);
 }
 
 * {
@@ -20,7 +26,8 @@ body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
-  background: var(--white);
+  background: var(--bg);
+  color: var(--fg);
 }
 
 #root {
@@ -75,8 +82,8 @@ textarea {
   padding: 0.75rem;
   border-radius: 4px;
   border: 2px solid var(--gray-1);
-  background: var(--white);
-  color: var(--black);
+  background: var(--surface);
+  color: var(--fg);
 }
 
 input:focus,
@@ -200,7 +207,7 @@ header p {
   text-transform: uppercase;
   padding: 0.35rem 0.5rem;
   border: 2px solid var(--black);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .center-tile .definition-editor {
@@ -243,7 +250,7 @@ header p {
   width: 14px;
   height: 14px;
   border: 2px solid var(--gray-1);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .square.active {
@@ -253,7 +260,7 @@ header p {
 
 .square.visited {
   border-color: var(--black);
-  background: var(--white);
+  background: var(--surface);
 }
 
 .nav-row {

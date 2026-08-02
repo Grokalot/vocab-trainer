@@ -3,6 +3,7 @@ import { useAI } from './hooks/useAI';
 import { useStatistics } from './hooks/useStatistics';
 import { useWordLists } from './hooks/useWordLists';
 import { useStudySession } from './hooks/useStudySession';
+import { recordSessionCompletion } from './lib/sessionStats';
 import SetupView from './components/SetupView';
 import StudyPhase from './components/StudyPhase';
 import RecallPhase from './components/RecallPhase';
@@ -24,6 +25,10 @@ export default function App() {
     fetchGptDefinition: ai.fetchDefinitionFromGpt,
     renameWordInList: wordLists.renameWordInList,
     onWordRenamed: statistics.refresh,
+    onSessionCompleted: (summary) => {
+      recordSessionCompletion(summary);
+      statistics.refresh();
+    },
     onSessionFinished: statistics.refresh,
   });
 

@@ -70,6 +70,39 @@ export interface TrackedStats {
   overallAverage: number;
 }
 
+/** Broad session type for completion stats (`tracked-study` and `tracked-test` → `tracked`). */
+export type SessionCategory = 'new' | 'tracked';
+
+/** Summary passed when a recall phase is fully completed. */
+export interface SessionCompletionSummary {
+  mode: SessionStartMode;
+  wordCount: number;
+  averageScore: number;
+  words: SessionWord[];
+}
+
+/** One persisted completed session — extend with fields as stats grow. */
+export interface CompletedSessionRecord {
+  completedAt: number;
+  mode: SessionStartMode;
+  category: SessionCategory;
+  wordCount: number;
+  averageScore: number;
+  results: Array<{ word: string; score: number }>;
+}
+
+/** Persisted session history for current and future statistics. */
+export interface SessionHistory {
+  completedCounts: Record<SessionCategory, number>;
+  sessions: CompletedSessionRecord[];
+}
+
+/** High-level session completion counters (derived from SessionHistory). */
+export interface SessionStats {
+  completedNewSessions: number;
+  completedTrackedSessions: number;
+}
+
 /** Full study statistics shown on the setup screen. */
 export interface StudyStatistics {
   trends: WordStatistics[];
@@ -80,6 +113,7 @@ export interface StudyStatistics {
   maxTrackedWords: number;
   untestedCount: number;
   maxNewWords: number;
+  sessionStats: SessionStats;
 }
 
 // ── Settings & storage ──────────────────────────────────────────────────────
