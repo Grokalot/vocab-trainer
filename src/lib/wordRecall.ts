@@ -137,10 +137,15 @@ export function getWordRecallEligibleCount(): number {
 }
 
 /** Pick words for word recall test — weaker word-supply scores appear more often. */
-export function pickWordRecallTestWords(count: number): string[] {
-  const eligible = getStudiedWordsWithDefinitions().filter(
+export function pickWordRecallTestWords(count: number, wordPool?: string[]): string[] {
+  let eligible = getStudiedWordsWithDefinitions().filter(
     (entry) => !isBadWordRecallDefinition(entry.word, entry.definition),
   );
+
+  if (wordPool && wordPool.length > 0) {
+    const pool = new Set(wordPool.map(wordKey));
+    eligible = eligible.filter((entry) => pool.has(wordKey(entry.word)));
+  }
 
   if (eligible.length === 0) return [];
 

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import type { OverviewStats, SessionStartMode, WordStatistics } from '../types';
+import { useMemo, useState } from 'react';
+import type { OverviewStats, SessionStartMode, TrackedWordSource, WordStatistics } from '../types';
+import { getCustomEligibleCounts } from '../lib/customWordList';
 import BrainProgress from './BrainProgress';
 import StatsPanel from './StatsPanel';
 
@@ -25,7 +26,12 @@ interface SetupViewProps {
   maxRetentionWords: number;
   maxWordRecallWords: number;
   onTrackedWordCountChange: (value: number) => void;
-  onStartTracked: (mode: TrackedStartMode) => void;
+  onStartTracked: (mode: TrackedStartMode, wordSource: TrackedWordSource) => void;
+  customWords: string[];
+  customCount: number;
+  onAddToCustomList: (word: string) => void;
+  onRemoveFromCustomList: (word: string) => void;
+  isInCustomList: (word: string) => boolean;
 }
 
 export default function SetupView({
@@ -46,17 +52,50 @@ export default function SetupView({
   maxWordRecallWords,
   onTrackedWordCountChange,
   onStartTracked,
+  customWords,
+  customCount,
+  onAddToCustomList,
+  onRemoveFromCustomList,
+  isInCustomList,
 }: SetupViewProps) {
   const canStartNew = untestedCount > 0 && hasApiKey;
   const [testPickerOpen, setTestPickerOpen] = useState(false);
+  const [pendingMode, setPendingMode] = useState<TrackedStartMode | null>(null);
   const canStartDefinitionTest = hasApiKey && maxRetentionWords > 0;
   const canStartWordTest = hasApiKey && maxWordRecallWords > 0;
   const canOpenTestPicker = canStartDefinitionTest || canStartWordTest;
 
-  function startTest(mode: Extract<SessionStartMode, 'tracked-test' | 'tracked-test-word'>) {
-    setTestPickerOpen(false);
-    onStartTracked(mode);
+  const customEligible = useMemo(
+    () => getCustomEligibleCounts(customWords),
+    [customWords],
+  );
+
+  function customEligibleForMode(mode: TrackedStartMode): number {
+    if (mode === 'tracked-study') return customEligible.study;
+    if (mode === 'tracked-test') return customEligible.definitionTest;
+    return customEligible.wordTest;
   }
+
+  function requestTrackedStart(mode: TrackedStartMode) {
+    setTestPickerOpen(false);
+    setPendingMode(mode);
+  }
+
+  function cancelSourcePicker() {
+    setPendingMode(null);
+  }
+
+  function confirmSource(source: TrackedWordSource) {
+    if (!pendingMode) return;
+    onStartTracked(pendingMode, source);
+    setPendingMode(null);
+  }
+
+  function startTest(mode: Extract<SessionStartMode, 'tracked-test' | 'tracked-test-word'>) {
+    requestTrackedStart(mode);
+  }
+
+  const pendingCustomEligible = pendingMode ? customEligibleForMode(pendingMode) : 0;
 
   return (
     <>
@@ -94,7 +133,14 @@ export default function SetupView({
 
       <details className="stats-collapsible spacer-section">
         <summary>Stats</summary>
-        <StatsPanel overview={overview} learnedWords={learnedWords} />
+        <StatsPanel
+          overview={overview}
+          learnedWords={learnedWords}
+          customCount={customCount}
+          onAddToCustomList={onAddToCustomList}
+          onRemoveFromCustomList={onRemoveFromCustomList}
+          isInCustomList={isInCustomList}
+        />
       </details>
 
       {improvingWords.length > 0 && (
@@ -129,7 +175,10 @@ export default function SetupView({
               </span>
             </label>
             <div className="tracked-actions">
-              <button onClick={() => onStartTracked('tracked-study')} disabled={!hasApiKey}>
+              <button
+                onClick={() => requestTrackedStart('tracked-study')}
+                disabled={!hasApiKey}
+              >
                 Tracked study
               </button>
               <button
@@ -157,8 +206,35 @@ export default function SetupView({
                 </button>
               </div>
             )}
+            {pendingMode && (
+              <div className="test-type-picker word-source-picker">
+                <span className="hint word-source-label">
+                  {pendingMode === 'tracked-study'
+                    ? 'Tracked study'
+                    : pendingMode === 'tracked-test'
+                      ? 'Definition test'
+                      : 'Word test'}
+                  {' · '}choose word list
+                </span>
+                <button type="button" onClick={() => confirmSource('random')}>
+                  Random
+                </button>
+                <button
+                  type="button"
+                  onClick={() => confirmSource('custom')}
+                  disabled={pendingCustomEligible === 0}
+                >
+                  Custom
+                  {customCount > 0 ? ` · ${pendingCustomEligible} eligible` : ''}
+                </button>
+                <button type="button" className="ghost" onClick={cancelSourcePicker}>
+                  Cancel
+                </button>
+              </div>
+            )}
             <span className="hint">
               Test · long-term retention, separate from study scores
+              {customCount > 0 && ` · Custom list · ${customCount} word${customCount === 1 ? '' : 's'}`}
             </span>
           </div>
         </div>

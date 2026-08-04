@@ -1,6 +1,7 @@
 import { migrateWordProgress, wordKey } from './storage';
 import { migrateRetentionWordProgress } from './retention';
 import { migrateWordRecallWordProgress } from './wordRecall';
+import { migrateCustomWordListRename } from './customWordList';
 import type { WordList } from '../types';
 
 const WORD_LIST_KEY = 'vocab-trainer-word-list';
@@ -81,6 +82,7 @@ export function renameWord(wordList: WordList, oldWord: string, newWord: string)
   migrateWordProgress(oldWord, trimmed);
   migrateRetentionWordProgress(oldWord, trimmed);
   migrateWordRecallWordProgress(oldWord, trimmed);
+  migrateCustomWordListRename(oldWord, trimmed);
   return updated;
 }
 

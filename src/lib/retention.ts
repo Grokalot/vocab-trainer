@@ -119,8 +119,13 @@ function weightedPick(pool: WeightedWord[], count: number): string[] {
 }
 
 /** Pick words for tracked test — retention scores; eligible if studied in main progress. */
-export function pickRetentionTestWords(count: number): string[] {
-  const studied = Object.values(loadProgress()).filter((entry) => entry.attempts.length > 0);
+export function pickRetentionTestWords(count: number, wordPool?: string[]): string[] {
+  let studied = Object.values(loadProgress()).filter((entry) => entry.attempts.length > 0);
+
+  if (wordPool && wordPool.length > 0) {
+    const pool = new Set(wordPool.map(wordKey));
+    studied = studied.filter((entry) => pool.has(wordKey(entry.word)));
+  }
 
   if (studied.length === 0) return [];
 

@@ -8,6 +8,8 @@ export type SessionStartMode =
   | 'tracked-test'
   | 'tracked-test-word';
 
+export type TrackedWordSource = 'random' | 'custom';
+
 export type Trend = 'improving' | 'declining' | 'stable' | 'new';
 
 // ── Core domain ─────────────────────────────────────────────────────────────

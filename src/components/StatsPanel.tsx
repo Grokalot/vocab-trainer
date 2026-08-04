@@ -4,9 +4,20 @@ import LearnedWordsList from './LearnedWordsList';
 interface StatsPanelProps {
   overview: OverviewStats;
   learnedWords: WordStatistics[];
+  customCount: number;
+  onAddToCustomList: (word: string) => void;
+  onRemoveFromCustomList: (word: string) => void;
+  isInCustomList: (word: string) => boolean;
 }
 
-export default function StatsPanel({ overview, learnedWords }: StatsPanelProps) {
+export default function StatsPanel({
+  overview,
+  learnedWords,
+  customCount,
+  onAddToCustomList,
+  onRemoveFromCustomList,
+  isInCustomList,
+}: StatsPanelProps) {
   const trackedTestTotal =
     overview.sessionsTrackedTest + overview.sessionsTrackedTestWord;
 
@@ -66,7 +77,17 @@ export default function StatsPanel({ overview, learnedWords }: StatsPanelProps) 
           <dd>{overview.wordRecallAverage}%</dd>
         </div>
       </dl>
-      <LearnedWordsList words={learnedWords} />
+      {customCount > 0 && (
+        <p className="hint stats-custom-list-hint">
+          Custom list · {customCount} word{customCount === 1 ? '' : 's'}
+        </p>
+      )}
+      <LearnedWordsList
+        words={learnedWords}
+        onAddToCustomList={onAddToCustomList}
+        onRemoveFromCustomList={onRemoveFromCustomList}
+        isInCustomList={isInCustomList}
+      />
     </div>
   );
 }

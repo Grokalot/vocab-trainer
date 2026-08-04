@@ -2,6 +2,7 @@ import { useSettings } from './hooks/useSettings';
 import { useAI } from './hooks/useAI';
 import { useStatistics } from './hooks/useStatistics';
 import { useWordLists } from './hooks/useWordLists';
+import { useCustomWordList } from './hooks/useCustomWordList';
 import { useStudySession } from './hooks/useStudySession';
 import { recordSessionCompletion } from './lib/sessionStats';
 import SetupView from './components/SetupView';
@@ -15,6 +16,7 @@ export default function App() {
   const ai = useAI();
   const wordLists = useWordLists();
   const statistics = useStatistics(wordLists.words);
+  const customWordList = useCustomWordList();
 
   const session = useStudySession({
     allWords: wordLists.words,
@@ -25,7 +27,10 @@ export default function App() {
     scoreWordAnswer: ai.scoreWordAnswer,
     fetchGptDefinition: ai.fetchDefinitionFromGpt,
     renameWordInList: wordLists.renameWordInList,
-    onWordRenamed: statistics.refresh,
+    onWordRenamed: () => {
+      statistics.refresh();
+      customWordList.refresh();
+    },
     onSessionCompleted: (summary) => {
       recordSessionCompletion(summary);
       statistics.refresh();
@@ -83,7 +88,12 @@ export default function App() {
               ),
             )
           }
-          onStartTracked={session.startSession}
+          onStartTracked={(mode, wordSource) => session.startSession(mode, { wordSource })}
+          customWords={customWordList.customWords}
+          customCount={customWordList.customCount}
+          onAddToCustomList={customWordList.add}
+          onRemoveFromCustomList={customWordList.remove}
+          isInCustomList={customWordList.has}
         />
       )}
 
@@ -159,7 +169,10 @@ export default function App() {
               onRenameWord={wordLists.renameWordInList}
               onRefreshDefinitions={ai.refreshDefinitions}
               onFetchGptDefinition={ai.fetchDefinitionFromGpt}
-              onStatisticsChange={statistics.refresh}
+              onStatisticsChange={() => {
+                statistics.refresh();
+                customWordList.refresh();
+              }}
             />
           )}
         </details>

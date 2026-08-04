@@ -8,6 +8,7 @@ import type {
   SessionStartMode,
   SessionWord,
   StudyPhaseView,
+  TrackedWordSource,
   Word,
   SessionCompletionSummary,
 } from '../types';
@@ -17,6 +18,7 @@ import {
   recordAttempt,
   saveDefinition,
 } from '../lib/storage';
+import { loadCustomWordList } from '../lib/customWordList';
 import { pickRetentionTestWords, recordRetentionAttempt } from '../lib/retention';
 import { pickWordRecallTestWords, recordWordRecallAttempt } from '../lib/wordRecall';
 import { applyLetterRevealCap, letterRevealMaxScore, parseWordLetterLayout } from '../lib/letterReveal';
@@ -268,7 +270,10 @@ export function useStudySession({
   testWordCancelRef.current = testWordEdit.cancel;
 
   const startSession = useCallback(
-    async (startMode: SessionStartMode) => {
+    async (
+      startMode: SessionStartMode,
+      options?: { wordSource?: TrackedWordSource },
+    ) => {
       setError('');
       setLoading(true);
       setLoadingBlocksUI(true);
@@ -276,19 +281,27 @@ export function useStudySession({
 
       try {
         const count = startMode === 'new' ? newWordCount : trackedWordCount;
+        const wordPool =
+          options?.wordSource === 'custom' ? loadCustomWordList() : undefined;
         const selected =
           startMode === 'new'
             ? pickNewWords(allWords, count)
             : startMode === 'tracked-test'
-              ? pickRetentionTestWords(count)
+              ? pickRetentionTestWords(count, wordPool)
               : startMode === 'tracked-test-word'
-                ? pickWordRecallTestWords(count)
-                : pickTrackedWords(count);
+                ? pickWordRecallTestWords(count, wordPool)
+                : pickTrackedWords(count, wordPool);
 
         if (selected.length === 0) {
           setError(
             startMode === 'new'
               ? 'No untested words left. Use tracked mode to review words you have studied.'
+              : options?.wordSource === 'custom'
+                ? startMode === 'tracked-test-word'
+                  ? 'No words in your custom list are eligible for word test. Add studied words with usable definitions in Stats.'
+                  : startMode === 'tracked-test'
+                    ? 'No words in your custom list are eligible for definition test. Add studied words in Stats.'
+                    : 'No words in your custom list have been studied yet. Add words in Stats or use Random.'
               : startMode === 'tracked-test-word'
                 ? 'No words with usable definitions for word test. Edit circular definitions (e.g. "variant of …") in your word list.'
                 : isTrackedTestStartMode(startMode)

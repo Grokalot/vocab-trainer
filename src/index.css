@@ -804,10 +804,158 @@ button.compact {
   margin-bottom: 0.75rem;
 }
 
+.stats-word-list-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.stats-word-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.75rem 4.75rem 2.25rem;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.stats-word-header {
+  padding: 0.5rem 0.85rem 0.35rem;
+  border-bottom: 1px solid var(--gray-1);
+}
+
+.stats-word-header-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-body);
+}
+
+.stats-word-sort {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-clickable);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.stats-word-sort:hover:not(:disabled) {
+  opacity: 0.75;
+  background: none;
+  color: var(--text-clickable);
+}
+
+.stats-word-sort[aria-pressed='true'] {
+  color: var(--fg);
+}
+
+.stats-word-header-action {
+  text-align: center;
+}
+
+.stats-word-list-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.stats-word-list-btn {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--gray-1);
+  border-radius: 4px;
+  background: var(--gray-2);
+  color: var(--text-clickable);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.stats-word-list-btn:hover:not(:disabled) {
+  border-color: var(--gray-0);
+  color: var(--fg);
+}
+
+.stats-word-list-btn-add {
+  color: var(--accent);
+}
+
+.stats-word-list-btn-remove {
+  color: var(--text-body);
+}
+
+.stats-custom-list-hint {
+  margin: 0 0 0.5rem;
+}
+
+.word-source-picker {
+  margin-top: 0.25rem;
+}
+
+.word-source-label {
+  margin: 0;
+  text-align: center;
+}
+
 .stats-word-list {
   margin: 0;
   max-height: 280px;
   overflow-y: auto;
+}
+
+.stats-word-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+}
+
+.stats-word-row {
+  width: 100%;
+}
+
+.stats-word-stat {
+  font-size: 0.8rem;
+  color: var(--text-body);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.stats-word-toggle {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--text-clickable);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  cursor: pointer;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-word-toggle:hover:not(:disabled) {
+  opacity: 0.75;
+  background: none;
+  color: var(--text-clickable);
+}
+
+.stats-word-item .stored-definition {
+  margin: 0;
+  text-align: left;
 }
 
 .stats-view-words {

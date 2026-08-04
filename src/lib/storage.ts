@@ -259,9 +259,14 @@ function weightedPick(pool: WeightedWord[], count: number): string[] {
   return selected;
 }
 
-export function pickTrackedWords(count: number): string[] {
+export function pickTrackedWords(count: number, wordPool?: string[]): string[] {
   const progress = loadProgress();
-  const tracked = Object.values(progress).filter((entry) => entry.attempts.length > 0);
+  let tracked = Object.values(progress).filter((entry) => entry.attempts.length > 0);
+
+  if (wordPool && wordPool.length > 0) {
+    const pool = new Set(wordPool.map(wordKey));
+    tracked = tracked.filter((entry) => pool.has(wordKey(entry.word)));
+  }
 
   if (tracked.length === 0) return [];
 
