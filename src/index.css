@@ -96,6 +96,26 @@ textarea:focus {
   border-color: var(--black);
 }
 
+.recall-input {
+  width: 100%;
+}
+
+.recall-input-over-limit input {
+  animation: recall-input-over-limit-flash 0.45s ease;
+}
+
+@keyframes recall-input-over-limit-flash {
+  0% {
+    border-color: var(--gray-1);
+  }
+  30% {
+    border-color: #e5534b;
+  }
+  100% {
+    border-color: var(--gray-1);
+  }
+}
+
 .app {
   max-width: 500px;
   margin: 0 auto;

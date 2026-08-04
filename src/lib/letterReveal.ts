@@ -14,6 +14,14 @@ function isLetter(char: string): boolean {
   return /\p{L}/u.test(char);
 }
 
+export function countTypedLetters(text: string): number {
+  let count = 0;
+  for (const char of text) {
+    if (isLetter(char)) count += 1;
+  }
+  return count;
+}
+
 /** Split a headword into letter groups (by spaces) with punctuation tiles. */
 export function parseWordLetterLayout(word: string): WordLetterLayout {
   const groups: LetterTile[][] = [];

@@ -83,8 +83,17 @@ export default function SetupView({
     setPendingMode(mode);
   }
 
-  function cancelSourcePicker() {
+  function cancelTrackedTestFlow() {
+    setTestPickerOpen(false);
     setPendingMode(null);
+  }
+
+  function toggleTrackedTestPicker() {
+    if (testPickerOpen || pendingMode !== null) {
+      cancelTrackedTestFlow();
+      return;
+    }
+    setTestPickerOpen(true);
   }
 
   function confirmSource(source: TrackedWordSource) {
@@ -185,7 +194,7 @@ export default function SetupView({
                 Tracked study
               </button>
               <button
-                onClick={() => setTestPickerOpen((open) => !open)}
+                onClick={toggleTrackedTestPicker}
                 disabled={!canOpenTestPicker}
               >
                 Tracked test
@@ -230,7 +239,7 @@ export default function SetupView({
                   Custom
                   {customCount > 0 ? ` · ${pendingCustomEligible} eligible` : ''}
                 </button>
-                <button type="button" className="ghost" onClick={cancelSourcePicker}>
+                <button type="button" className="ghost" onClick={cancelTrackedTestFlow}>
                   Cancel
                 </button>
               </div>

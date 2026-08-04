@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { prepareWordRecallPrompt } from '../lib/wordRecallPrompt';
-import { parseWordLetterLayout } from '../lib/letterReveal';
+import { countTypedLetters, parseWordLetterLayout } from '../lib/letterReveal';
 import type { DefinitionEditView, SessionWord, WordEditView } from '../types';
 import DefinitionEditor from './DefinitionEditor';
 import LetterRevealRow from './LetterRevealRow';
@@ -65,9 +65,11 @@ function RecallPhaseInner({
   onHome,
 }: RecallPhaseProps & { word: SessionWord }) {
   const [answerDraft, setAnswerDraft] = useState('');
+  const [inputOverLimitFlash, setInputOverLimitFlash] = useState(false);
   const [revealedLetterIndices, setRevealedLetterIndices] = useState<Set<number>>(
     () => new Set(),
   );
+  const overLimitFlashTimeoutRef = useRef<number | null>(null);
   const tileLocked = wordEdit.isEditing || definitionEdit.isEditing || submitting;
   const isWordRecall = variant === 'word';
   const wordRecallPrompt = isWordRecall
@@ -78,18 +80,48 @@ function RecallPhaseInner({
     [word.word],
   );
   const typedLetterCount = useMemo(() => {
-    let count = 0;
-    for (const char of answerDraft) {
-      if (/\p{L}/u.test(char)) count += 1;
-    }
-    return Math.min(count, letterCount);
+    return Math.min(countTypedLetters(answerDraft), letterCount);
   }, [answerDraft, letterCount]);
 
   useEffect(() => {
     setAnswerDraft('');
     setRevealedLetterIndices(new Set());
+    setInputOverLimitFlash(false);
   }, [word.word]);
 
+  useEffect(() => {
+    return () => {
+      if (overLimitFlashTimeoutRef.current !== null) {
+        window.clearTimeout(overLimitFlashTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  function triggerOverLimitFlash() {
+    setInputOverLimitFlash(false);
+    window.requestAnimationFrame(() => {
+      setInputOverLimitFlash(true);
+      if (overLimitFlashTimeoutRef.current !== null) {
+        window.clearTimeout(overLimitFlashTimeoutRef.current);
+      }
+      overLimitFlashTimeoutRef.current = window.setTimeout(() => {
+        setInputOverLimitFlash(false);
+        overLimitFlashTimeoutRef.current = null;
+      }, 450);
+    });
+  }
+
+  function handleAnswerChange(value: string) {
+    const previousCount = countTypedLetters(answerDraft);
+    setAnswerDraft(value);
+
+    if (!isWordRecall || letterCount === 0) return;
+
+    const nextCount = countTypedLetters(value);
+    if (nextCount > letterCount && nextCount > previousCount) {
+      triggerOverLimitFlash();
+    }
+  }
   function revealLetter(letterIndex: number) {
     setRevealedLetterIndices((current) => {
       if (current.has(letterIndex)) return current;
@@ -154,13 +186,15 @@ function RecallPhaseInner({
           />
         ) : (
           !wordEdit.isEditing && (
-            <label className="recall-input">
+            <label
+              className={`recall-input${inputOverLimitFlash ? ' recall-input-over-limit' : ''}`}
+            >
               <span className="sr-only">{isWordRecall ? 'Your word' : 'Your definition'}</span>
               {isWordRecall ? (
                 <input
                   type="text"
                   value={answerDraft}
-                  onChange={(e) => setAnswerDraft(e.target.value)}
+                  onChange={(e) => handleAnswerChange(e.target.value)}
                   onKeyDown={handleAnswerKeyDown}
                   placeholder="Type the word…"
                   autoFocus
@@ -169,7 +203,7 @@ function RecallPhaseInner({
               ) : (
                 <textarea
                   value={answerDraft}
-                  onChange={(e) => setAnswerDraft(e.target.value)}
+                  onChange={(e) => handleAnswerChange(e.target.value)}
                   onKeyDown={handleAnswerKeyDown}
                   placeholder="Type the definition…"
                   rows={4}
