@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   addToCustomWordList,
+  clearCustomWordList,
   isInCustomWordList,
   loadCustomWordList,
   removeFromCustomWordList,
@@ -29,6 +30,11 @@ export function useCustomWordList() {
     [refresh],
   );
 
+  const clear = useCallback(() => {
+    clearCustomWordList();
+    refresh();
+  }, [refresh]);
+
   const has = useCallback(
     (word: string) => isInCustomWordList(word),
     [customWords],
@@ -39,6 +45,7 @@ export function useCustomWordList() {
     customCount: customWords.length,
     add,
     remove,
+    clear,
     has,
     refresh,
   };

@@ -93,6 +93,7 @@ export default function App() {
           customCount={customWordList.customCount}
           onAddToCustomList={customWordList.add}
           onRemoveFromCustomList={customWordList.remove}
+          onClearCustomList={customWordList.clear}
           isInCustomList={customWordList.has}
         />
       )}

@@ -77,6 +77,13 @@ function RecallPhaseInner({
     () => parseWordLetterLayout(word.word),
     [word.word],
   );
+  const typedLetterCount = useMemo(() => {
+    let count = 0;
+    for (const char of answerDraft) {
+      if (/\p{L}/u.test(char)) count += 1;
+    }
+    return Math.min(count, letterCount);
+  }, [answerDraft, letterCount]);
 
   useEffect(() => {
     setAnswerDraft('');
@@ -121,6 +128,7 @@ function RecallPhaseInner({
             word={word.word}
             revealedLetterIndices={revealedLetterIndices}
             onRevealLetter={revealLetter}
+            typedLetterCount={typedLetterCount}
             disabled={submitting}
           />
         )}

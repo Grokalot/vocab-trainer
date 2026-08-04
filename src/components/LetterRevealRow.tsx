@@ -8,6 +8,7 @@ interface LetterRevealRowProps {
   word: string;
   revealedLetterIndices: ReadonlySet<number>;
   onRevealLetter: (letterIndex: number) => void;
+  typedLetterCount?: number;
   disabled?: boolean;
 }
 
@@ -15,6 +16,7 @@ export default function LetterRevealRow({
   word,
   revealedLetterIndices,
   onRevealLetter,
+  typedLetterCount = 0,
   disabled = false,
 }: LetterRevealRowProps) {
   const { groups, letterCount } = parseWordLetterLayout(word);
@@ -33,6 +35,11 @@ export default function LetterRevealRow({
                 key={`${groupIndex}-${tileIndex}-${tile.kind === 'letter' ? tile.index : tile.char}`}
                 tile={tile}
                 revealed={tile.kind === 'letter' && revealedLetterIndices.has(tile.index)}
+                typed={
+                  tile.kind === 'letter' &&
+                  tile.index < typedLetterCount &&
+                  !revealedLetterIndices.has(tile.index)
+                }
                 onReveal={onRevealLetter}
                 disabled={disabled}
               />
@@ -48,11 +55,13 @@ export default function LetterRevealRow({
 function LetterBox({
   tile,
   revealed,
+  typed,
   onReveal,
   disabled,
 }: {
   tile: LetterTile;
   revealed: boolean;
+  typed: boolean;
   onReveal: (letterIndex: number) => void;
   disabled: boolean;
 }) {
@@ -67,7 +76,7 @@ function LetterBox({
   return (
     <button
       type="button"
-      className={`letter-box letter-box-letter${revealed ? ' revealed' : ''}`}
+      className={`letter-box letter-box-letter${revealed ? ' revealed' : ''}${typed ? ' typed' : ''}`}
       onClick={() => onReveal(tile.index)}
       disabled={disabled || revealed}
       aria-label={revealed ? `Letter ${tile.char} revealed` : 'Reveal a letter'}

@@ -129,7 +129,10 @@ export default function LearnedWordsList({
               const inCustomList = isInCustomList(item.word);
 
               return (
-                <li key={item.word} className="trend-item stats-word-item">
+                <li
+                  key={item.word}
+                  className={`trend-item stats-word-item${inCustomList ? ' stats-word-item-custom' : ''}`}
+                >
                   <div className="stats-word-grid stats-word-row">
                     <button
                       type="button"

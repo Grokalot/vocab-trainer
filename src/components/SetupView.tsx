@@ -31,6 +31,7 @@ interface SetupViewProps {
   customCount: number;
   onAddToCustomList: (word: string) => void;
   onRemoveFromCustomList: (word: string) => void;
+  onClearCustomList: () => void;
   isInCustomList: (word: string) => boolean;
 }
 
@@ -56,6 +57,7 @@ export default function SetupView({
   customCount,
   onAddToCustomList,
   onRemoveFromCustomList,
+  onClearCustomList,
   isInCustomList,
 }: SetupViewProps) {
   const canStartNew = untestedCount > 0 && hasApiKey;
@@ -139,6 +141,7 @@ export default function SetupView({
           customCount={customCount}
           onAddToCustomList={onAddToCustomList}
           onRemoveFromCustomList={onRemoveFromCustomList}
+          onClearCustomList={onClearCustomList}
           isInCustomList={isInCustomList}
         />
       </details>

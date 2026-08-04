@@ -448,6 +448,18 @@ header p {
   cursor: default;
 }
 
+.letter-box-letter.typed {
+  background: var(--fg);
+  border-color: var(--fg);
+  color: transparent;
+  cursor: text;
+}
+
+.letter-box-letter.typed:hover:not(:disabled) {
+  background: var(--fg);
+  color: transparent;
+}
+
 .letter-box-punctuation {
   background: var(--surface);
   color: var(--text-muted);
@@ -885,15 +897,48 @@ button.compact {
 }
 
 .stats-word-list-btn-add {
-  color: var(--accent);
+  color: var(--text-muted);
+  background: var(--surface);
 }
 
 .stats-word-list-btn-remove {
-  color: var(--text-body);
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  font-weight: 700;
+}
+
+.stats-word-list-btn-remove:hover:not(:disabled) {
+  background: var(--fg);
+  color: var(--bg);
+  border-color: var(--fg);
+  opacity: 0.88;
+}
+
+.stats-word-item-custom {
+  background: var(--surface-hover);
+}
+
+.stats-word-item-custom .stats-word-toggle {
+  color: var(--fg);
+}
+
+.stats-custom-list-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .stats-custom-list-hint {
-  margin: 0 0 0.5rem;
+  margin: 0;
+}
+
+.stats-custom-list-clear {
+  flex-shrink: 0;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.85rem;
 }
 
 .word-source-picker {

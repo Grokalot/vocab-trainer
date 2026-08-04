@@ -41,6 +41,10 @@ export function removeFromCustomWordList(word: string): void {
   saveCustomWordList(loadCustomWordList().filter((item) => wordKey(item) !== key));
 }
 
+export function clearCustomWordList(): void {
+  saveCustomWordList([]);
+}
+
 export function migrateCustomWordListRename(oldWord: string, newWord: string): void {
   const oldKey = wordKey(oldWord);
   const trimmed = newWord.trim();

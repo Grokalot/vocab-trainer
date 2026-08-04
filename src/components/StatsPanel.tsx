@@ -7,6 +7,7 @@ interface StatsPanelProps {
   customCount: number;
   onAddToCustomList: (word: string) => void;
   onRemoveFromCustomList: (word: string) => void;
+  onClearCustomList: () => void;
   isInCustomList: (word: string) => boolean;
 }
 
@@ -16,6 +17,7 @@ export default function StatsPanel({
   customCount,
   onAddToCustomList,
   onRemoveFromCustomList,
+  onClearCustomList,
   isInCustomList,
 }: StatsPanelProps) {
   const trackedTestTotal =
@@ -78,9 +80,18 @@ export default function StatsPanel({
         </div>
       </dl>
       {customCount > 0 && (
-        <p className="hint stats-custom-list-hint">
-          Custom list · {customCount} word{customCount === 1 ? '' : 's'}
-        </p>
+        <div className="stats-custom-list-bar">
+          <p className="hint stats-custom-list-hint">
+            Custom list · {customCount} word{customCount === 1 ? '' : 's'}
+          </p>
+          <button
+            type="button"
+            className="ghost stats-custom-list-clear"
+            onClick={onClearCustomList}
+          >
+            Clear
+          </button>
+        </div>
       )}
       <LearnedWordsList
         words={learnedWords}
